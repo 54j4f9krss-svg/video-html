@@ -1,908 +1,1947 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Showreel Apple Keynote ESR - Equipo 4 (Exportador MP4 1080p)</title>
-<style>
-  :root {
-    --bg-cream: #FAF8F5;
-    --ink: #1D1D1F;
-    --muted: #6E6E73;
-    --green: #16A34A;
-    --amber: #D97706;
-    --red: #DC2626;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-  body {
-    background: #111113;
-    color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, sans-serif;
-    overflow: hidden;
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  /* Lienzo bloqueado en proporción 16:9 Full HD */
-  canvas {
-    width: 100vw;
-    height: 100vh;
-    object-fit: contain;
-    background: var(--bg-cream);
-    display: block;
-  }
-
-  #topbar {
-    position: fixed;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 30;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 5px;
-    align-items: center;
-    width: max-content;
-    max-width: 96vw;
-    background: rgba(29, 29, 31, 0.9);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
-    padding: 8px 12px;
-    border-radius: 999px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-  }
-  #topbar.hidden {
-    opacity: 0;
-    pointer-events: none;
-    transform: translate(-50%, -30px);
-  }
-  .btn {
-    border: none;
-    background: rgba(255,255,255,0.14);
-    color: #fff;
-    font-size: 11.5px;
-    font-weight: 600;
-    padding: 7px 11px;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn:active { transform: scale(0.95); }
-  .btn.active { background: #16A34A; color: #fff; }
-  .btn.amber { background: #D97706; color: #fff; }
-  .btn.rec { background: #DC2626; color: #fff; font-weight: 700; }
-  .divider { width: 1px; height: 18px; background: rgba(255,255,255,0.2); margin: 0 2px; }
-
-  /* Indicador de renderizado MP4 */
-  #recBanner {
-    position: fixed;
-    top: 68px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 35;
-    background: rgba(220, 38, 38, 0.95);
-    color: #fff;
-    padding: 8px 18px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 700;
-    display: none;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 8px 25px rgba(220,38,38,0.4);
-  }
-  #recBanner.active { display: flex; }
-
-  /* Subtítulo / Teleprompter inferior */
-  #teleprompter {
-    position: fixed;
-    bottom: 18px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 25;
-    max-width: 840px;
-    width: 90%;
-    background: rgba(29, 29, 31, 0.86);
-    color: #fff;
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-    padding: 11px 20px;
-    border-radius: 16px;
-    font-size: 14px;
-    line-height: 1.45;
-    text-align: center;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.2);
-  }
-  #teleprompter.hidden { opacity: 0; pointer-events: none; }
-  #teleprompter span.tag {
-    display: inline-block;
-    background: #16A34A;
-    color: #fff;
-    font-size: 10.5px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 99px;
-    margin-right: 8px;
-  }
-
-  /* Modal de Descarga MP4 y Guion */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    background: rgba(0,0,0,0.65);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal-card {
-    background: #fff;
-    color: var(--ink);
-    max-width: 780px;
-    width: 100%;
-    max-height: 84vh;
-    border-radius: 24px;
-    padding: 24px;
-    overflow-y: auto;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.35);
-    user-select: text;
-    -webkit-user-select: text;
-  }
-  .script-block {
-    background: #F9FAFB;
-    border: 1px solid #E5E7EB;
-    border-radius: 14px;
-    padding: 12px 15px;
-    margin-bottom: 10px;
-  }
-  .script-block h4 { color: #16A34A; font-size: 12.5px; text-transform: uppercase; margin-bottom: 5px; }
-  .script-block p { font-size: 14px; line-height: 1.5; color: #1F2937; margin-bottom: 5px; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Showreel Apple Keynote ESR - Equipo 4</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Plus Jakarta Sans (Apple SF Display style), Inter, Instrument Serif -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-cream: #FAF8F5;
+      --apple-dark: #0F172A;
+      --esr-emerald: #16A34A;
+      --esr-blue: #0284C7;
+      --esr-amber: #D97706;
+    }
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    body {
+      background-color: #E6E2DA;
+      color: #0F172A;
+      font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', 'Inter', sans-serif;
+      overflow: hidden;
+      touch-action: manipulation;
+      -webkit-font-smoothing: antialiased;
+    }
+    .apple-glass {
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+    }
+    .apple-glass-dark {
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+    }
+    /* Apple Keynote Timeline Scrubber */
+    input[type="range"].apple-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"].apple-slider::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.15);
+    }
+    input[type="range"].apple-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #16A34A;
+      border: 3px solid #FFFFFF;
+      margin-top: -7px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+    /* Clean Screen Recording Mode for iPad (Hides all UI bars cleanly) */
+    body.recording-mode .studio-chrome {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      height: 0 !important;
+      overflow: hidden !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+    }
+    body.recording-mode .stage-wrapper {
+      padding: 0 !important;
+      height: 100vh !important;
+      width: 100vw !important;
+      max-width: 100vw !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #FAF8F5;
+    }
+    body.recording-mode .canvas-container {
+      border-radius: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      width: 100vw !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+    }
+    .selectable-text {
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
+  </style>
 </head>
-<body>
+<body class="h-screen w-screen flex flex-col justify-between">
 
-<canvas id="stage"></canvas>
+  <!-- TOP BAR: APPLE KEYNOTE STUDIO HEADER & 5-BLOCK SELECTOR -->
+  <header class="studio-chrome w-full border-b border-slate-900/10 apple-glass px-3 sm:px-5 py-2 z-30 transition-all duration-300">
+    <div class="max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-2">
+      
+      <!-- Brand / Topic Badge -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-amber-600 flex items-center justify-center text-white shadow-sm font-extrabold text-xs">
+          ESR
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] uppercase tracking-wider text-emerald-800 font-bold bg-emerald-500/15 px-2 py-0.5 rounded-full">
+              4. Escenario Económico • 4.8.2
+            </span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-900">
+              2:30 Min • Voz IA
+            </span>
+          </div>
+          <h1 class="text-xs sm:text-sm font-extrabold tracking-tight text-slate-900">
+            Empresas Socialmente Responsables — Showreel Keynote
+          </h1>
+        </div>
+      </div>
 
-<div id="topbar">
-  <button class="btn active" onclick="setBlock(0)" id="b0">B1</button>
-  <button class="btn" onclick="setBlock(1)" id="b1">B2</button>
-  <button class="btn" onclick="setBlock(2)" id="b2">B3</button>
-  <button class="btn" onclick="setBlock(3)" id="b3">B4 · Bimbo</button>
-  <button class="btn" onclick="setBlock(4)" id="b4">B5 · Equipo 4</button>
-  <div class="divider"></div>
-  <button class="btn rec" onclick="startExport(false)">⬇️ Exportar Bloque (30s MP4)</button>
-  <button class="btn rec" onclick="startExport(true)">⬇️ Exportar Todo (2:30 MP4)</button>
-  <div class="divider"></div>
-  <button class="btn active" id="btnSub" onclick="toggleSub()">💬 Subtítulos</button>
-  <button class="btn amber" onclick="openScript()">📄 Guion IA</button>
-  <button class="btn" onclick="hideUI()">⏺ Ocultar Menú</button>
-</div>
+      <!-- 5 Chapters Selector (5 x 30s = 2:30 Min) -->
+      <div class="flex flex-wrap items-center gap-1 bg-slate-900/5 p-1 rounded-2xl border border-slate-900/5">
+        <button onclick="selectBlock(0)" id="blockBtn0" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-white text-slate-900 shadow-sm">
+          B1 · ¿Qué es ESR?
+        </button>
+        <button onclick="selectBlock(1)" id="blockBtn1" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all text-slate-600 hover:text-slate-900">
+          B2 · 4 Pilares y Costos
+        </button>
+        <button onclick="selectBlock(2)" id="blockBtn2" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all text-slate-600 hover:text-slate-900">
+          B3 · Economía Circular
+        </button>
+        <button onclick="selectBlock(3)" id="blockBtn3" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all text-slate-600 hover:text-slate-900">
+          B4 · Caso Bimbo
+        </button>
+        <button onclick="selectBlock(4)" id="blockBtn4" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all text-slate-600 hover:text-slate-900">
+          B5 · Cierre + Equipo 4
+        </button>
+      </div>
 
-<div id="recBanner">
-  <span id="recStatus">🔴 Renderizando MP4 1080p (Sin botones en el video)... 0%</span>
-  <button class="btn" style="background:#1D1D1F;" onclick="stopExportEarly()">⏹ Terminar y Guardar Ahora</button>
-</div>
+      <!-- Studio Action Buttons + Exportadores directos de video -->
+      <div class="flex flex-wrap items-center gap-1.5">
+        <button onclick="startDirectExport(false)" class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-700 transition shadow-sm">
+          ⬇️ Grabar Bloque (30s)
+        </button>
+        <button onclick="startDirectExport(true)" class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-red-700 text-white hover:bg-red-800 transition shadow-sm">
+          ⬇️ Grabar Todo (2:30)
+        </button>
+        <button onclick="toggleContinuousMode()" id="continuousBtn" class="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-emerald-600/30 bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">
+          🔁 Corrido 2:30: ON
+        </button>
+        <button onclick="toggleMusic()" id="musicBtn" class="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-emerald-600/30 bg-emerald-500/15 text-emerald-900 hover:bg-emerald-500/25 transition">
+          🎵 Música: ON
+        </button>
+        <button onclick="toggleSfx()" id="sfxBtn" class="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-sky-600/30 bg-sky-500/15 text-sky-900 hover:bg-sky-500/25 transition">
+          🔊 SFX: ON
+        </button>
+        <button onclick="toggleTeleprompter()" id="prompterBtn" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-900/10 bg-white/80 hover:bg-white text-slate-800 transition">
+          💬 Subtítulo: ON
+        </button>
+        <button onclick="toggleScriptModal()" class="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-amber-600/30 bg-amber-500 text-white hover:bg-amber-600 transition shadow-sm">
+          📄 Guion Voz IA
+        </button>
+        <button onclick="enterCleanRecordMode()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 transition shadow-sm">
+          ⏺ Modo Grabar
+        </button>
+      </div>
 
-<div id="teleprompter">
-  <span class="tag" id="tpTag">0:00</span>
-  <span id="tpText">Resolución bloqueada en Full HD 1920×1080. Usa los botones rojos para descargar el video limpio.</span>
-</div>
+    </div>
+  </header>
 
-<!-- Modal cuando termina de generarse el video MP4 -->
-<div id="downloadModal" class="modal-overlay">
-  <div class="modal-card" style="max-width:480px; text-align:center;">
-    <h2 style="font-size:22px; margin-bottom:8px;">✅ ¡Tu video Full HD 1080p está listo!</h2>
-    <p style="font-size:14px; color:#6E6E73; margin-bottom:18px;">
-      Se grabó directamente del lienzo a 1920×1080 (sin menús ni barras). Elige cómo guardarlo en tu iPad:
-    </p>
-    <div style="display:flex; flex-direction:column; gap:10px;">
-      <button class="btn active" style="padding:14px; font-size:15px;" onclick="shareVideoFile()">
-        📲 Guardar en Archivos / Enviar a CapCut (iPad)
-      </button>
-      <a id="directDownloadLink" class="btn amber" style="padding:14px; font-size:15px; text-decoration:none; display:block;">
-        ⬇️ Descargar archivo directo
-      </a>
-      <button class="btn" style="background:#E5E7EB; color:#1D1D1F; padding:12px;" onclick="closeDownloadModal()">
-        Cerrar ventana
-      </button>
+  <!-- BANNER FLOTANTE DE ESTADO AL GRABAR EL VIDEO DIRECTAMENTE -->
+  <div id="exportStatusBanner" class="fixed top-14 left-1/2 -translate-x-1/2 z-50 hidden items-center gap-3 bg-red-600/95 text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-2xl backdrop-blur-md border border-white/20">
+    <span id="exportProgressText">🔴 Grabando fotogramas limpios a 60 FPS... 0%</span>
+    <button onclick="stopExportDirectly()" class="px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[11px] hover:bg-black transition">
+      ⏹ Terminar y Descargar
+    </button>
+  </div>
+
+  <!-- MAIN 16:9 VIEWPORT STAGE -->
+  <main class="stage-wrapper flex-1 flex flex-col items-center justify-center px-2 sm:px-5 py-2 relative overflow-hidden">
+    
+    <!-- Toast Notice when entering Clean Recording Mode on iPad -->
+    <div id="cleanModeToast" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-opacity duration-500 apple-glass-dark text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow-2xl border border-white/15 text-center">
+      ✨ Modo Grabación Limpia — Da <span class="text-amber-400 font-bold">doble toque en la pantalla</span> para volver a mostrar el menú
+    </div>
+
+    <!-- 16:9 Apple Keynote Canvas Stage -->
+    <div id="canvasContainer" class="canvas-container relative w-full max-w-[1160px] aspect-video rounded-[26px] overflow-hidden border border-slate-900/10 shadow-[0_20px_50px_rgba(15,23,42,0.14)] bg-[#FAF8F5]">
+      <canvas id="keynoteCanvas" class="w-full h-full block cursor-pointer"></canvas>
+
+      <!-- Sleek Apple Glass Subtitle / Teleprompter Pill -->
+      <div id="teleprompterOverlay" class=" absolute bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-3xl apple-glass-dark text-white border border-white/15 rounded-2xl px-5 py-2.5 pointer-events-none transition-all duration-300 shadow-xl">
+        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider mb-0.5">
+          <span id="prompterSpeakerLabel" class="text-emerald-400">🎙️ NARRADOR VOZ IA — ESCENA 1 (0:00 - 0:08)</span>
+          <span id="prompterBlockName" class="text-amber-300">BLOQUE 1 • ¿QUÉ ES UNA ESR?</span>
+        </div>
+        <p id="prompterText" class="text-xs sm:text-sm text-white/95 font-medium leading-snug">
+          "En el escenario económico actual, el éxito de una empresa ya no se mide solo por sus ganancias financieras, sino por la huella que deja en el mundo."
+        </p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- BOTTOM CONTROL BAR: TIMELINE & SCENE JUMPERS -->
+  <footer class="studio-chrome w-full border-t border-slate-900/10 apple-glass px-4 py-2.5 z-30">
+    <div class="max-w-7xl mx-auto flex flex-col gap-2">
+      
+      <!-- Scrubber Row -->
+      <div class="flex items-center gap-3">
+        <!-- Play / Pause -->
+        <button onclick="togglePlay()" id="playPauseBtn" class="w-9 h-9 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center font-bold shadow-md shadow-emerald-600/25 transition">
+          <svg id="pauseIcon" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+          <svg id="playIcon" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+
+        <!-- Restart Current Block -->
+        <button onclick="restartCurrentBlock()" class="px-3 h-9 rounded-2xl bg-slate-900/5 hover:bg-slate-900/10 text-xs font-bold text-slate-800 transition flex items-center gap-1">
+          <span>↺ 0:00</span>
+        </button>
+
+        <!-- Timecode Readout -->
+        <div class="text-xs font-bold bg-white/90 border border-slate-900/10 px-3 py-1.5 rounded-2xl min-w-[155px] text-center shadow-sm">
+          <span id="currentTimeReadout" class="text-slate-900">0:00</span>
+          <span id="totalTimeReadout" class="text-slate-400"> / 2:30 (B1)</span>
+        </div>
+
+        <!-- Scrubber Slider -->
+        <div class="flex-1 flex items-center">
+          <input id="timelineSlider" type="range" min="0" max="30" step="0.02" value="0" class="apple-slider w-full" oninput="scrubTimeline(this.value)" />
+        </div>
+      </div>
+
+      <!-- 3 Dynamic Scenes per Block (30s per block) -->
+      <div class="grid grid-cols-3 gap-2">
+        <button onclick="jumpToScene(0)" id="sceneBtn0" class="px-3 py-1.5 rounded-xl border border-slate-900/10 bg-white/60 hover:bg-white text-left transition flex items-center justify-between">
+          <span id="sceneLabel0" class="text-xs font-bold text-slate-800">01. Apertura Keynote</span>
+          <span class="text-[10px] font-semibold text-slate-500">00-10s</span>
+        </button>
+        <button onclick="jumpToScene(1)" id="sceneBtn1" class="px-3 py-1.5 rounded-xl border border-slate-900/10 bg-white/60 hover:bg-white text-left transition flex items-center justify-between">
+          <span id="sceneLabel1" class="text-xs font-bold text-slate-800">02. Desarrollo Visual</span>
+          <span class="text-[10px] font-semibold text-slate-500">10-20s</span>
+        </button>
+        <button onclick="jumpToScene(2)" id="sceneBtn2" class="px-3 py-1.5 rounded-xl border border-slate-900/10 bg-white/60 hover:bg-white text-left transition flex items-center justify-between">
+          <span id="sceneLabel2" class="text-xs font-bold text-slate-800">03. Síntesis Bento</span>
+          <span class="text-[10px] font-semibold text-slate-500">20-30s</span>
+        </button>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- MODAL: DESCARGA DIRECTA DEL VIDEO GENERADO -->
+  <div id="downloadModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-white border border-slate-900/10 rounded-3xl max-w-md w-full p-6 flex flex-col items-center text-center shadow-2xl">
+      <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-700 flex items-center justify-center text-2xl mb-3">
+        ✅
+      </div>
+      <h3 class="text-lg font-extrabold text-slate-900 mb-1">¡Tu video en alta definición está listo!</h3>
+      <p class="text-xs text-slate-500 mb-5">
+        Se capturó directamente del lienzo en calidad original y sin las barras del navegador.
+      </p>
+      <div class="w-full flex flex-col gap-2.5">
+        <a id="downloadVideoBtn" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs text-center transition shadow-sm">
+          ⬇️ Descargar archivo de video ahora
+        </a>
+        <button onclick="closeDownloadModal()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition">
+          Cerrar
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Modal del Guion para Voz IA -->
-<div id="scriptModal" class="modal-overlay">
-  <div class="modal-card">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-      <div>
-        <h2 style="font-size:19px;">🎙️ Guion Corrido para Voz IA (2:30 min)</h2>
-        <p style="font-size:12.5px; color:#6E6E73;">Un solo narrador · Créditos del Equipo 4 al final.</p>
+  <!-- MODAL: CONTINUOUS 2:30 SCRIPT FOR AI VOICE (SINGLE NARRATOR) -->
+  <div id="scriptModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-[#FAF8F5] border border-slate-900/10 rounded-3xl max-w-4xl w-full max-h-[86vh] flex flex-col shadow-2xl overflow-hidden text-slate-900">
+      <div class="px-6 py-4 border-b border-slate-900/10 flex flex-wrap items-center justify-between gap-2 bg-white">
+        <div>
+          <span class="text-xs font-bold text-emerald-700 uppercase tracking-wider">GUION CORRIDO PARA UN SOLO NARRADOR EN VOZ IA (2:30 MINUTOS)</span>
+          <h2 class="text-lg font-extrabold text-slate-900">4.8.2 Empresas Socialmente Responsables (ESR)</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="copyPlainScript()" id="copyScriptBtn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition">
+            📋 Copiar texto limpio para IA
+          </button>
+          <button onclick="toggleScriptModal()" class="w-8 h-8 rounded-full bg-slate-900/5 hover:bg-slate-900/10 text-slate-700 flex items-center justify-center font-bold">✕</button>
+        </div>
       </div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn active" onclick="copyScript()">📋 Copiar texto limpio</button>
-        <button class="btn" style="background:#1D1D1F;" onclick="closeScript()">✕ Cerrar</button>
+      <div class="p-6 overflow-y-auto space-y-4 text-sm leading-relaxed selectable-text">
+        <div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-600/20 text-amber-950 text-xs sm:text-sm">
+          💡 <strong>Listo para CapCut, ElevenLabs o Clipchamp:</strong> Toda la narración está redactada para <strong>una sola Voz IA documental</strong> sin mencionar expositores al inicio, y cerrando en los últimos 15 segundos con los créditos del <strong>Equipo 4 (Luciano Bustillos, David García, Luis Payán y Armando Loya)</strong>.
+        </div>
+        <div id="modalScriptContent" class="space-y-3 selectable-text"></div>
+      </div>
+      <div class="px-6 py-3 border-t border-slate-900/10 bg-white flex justify-end">
+        <button onclick="toggleScriptModal()" class="px-5 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs">Cerrar ventana</button>
       </div>
     </div>
-    <div id="scriptContainer"></div>
   </div>
-</div>
 
-<script>
-const canvas = document.getElementById('stage');
-const ctx = canvas.getContext('2d', { alpha: false });
+  <script>
+    /*************************************************************************
+     * 1. TEAM 4 CREDITS (ONLY DISPLAYED AT THE END IN BLOCK 5) & 5-BLOCK DATA
+     *************************************************************************/
+    const TEAM_MEMBERS = [
+      { name: "Luciano Bustillos", role: "Análisis Económico y Sustentabilidad", initials: "LB", color: "#16A34A" },
+      { name: "David García", role: "Marco Normativo e Internalización", initials: "DG", color: "#0284C7" },
+      { name: "Luis Payán", role: "Economía Circular y Ciclo de Vida", initials: "LP", color: "#D97706" },
+      { name: "Armando Loya", role: "Caso Aplicado e Impacto Regional", initials: "AL", color: "#059669" }
+    ];
 
-// RESOLUCIÓN INTERNA FIJA EN FULL HD 1920x1080 (Escala lógica 1280x720 * 1.5)
-const W = 1280;
-const H = 720;
-const SCALE = 1.5; // 1280 * 1.5 = 1920px | 720 * 1.5 = 1080px
-canvas.width = 1920;
-canvas.height = 1080;
-ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-
-const BLOCKS = [
-  {
-    name: "Bloque 1 · ¿Qué es una Empresa Socialmente Responsable?",
-    scenes: [
-      { dur: 7, tag: "0:00 - 0:07", sub: "En el escenario económico actual, el éxito de una organización ya no se mide únicamente por sus utilidades trimestrales, sino por su impacto integral en el entorno." },
-      { dur: 11, tag: "0:07 - 0:18", sub: "Una Empresa Socialmente Responsable, o ESR, es aquella que integra voluntariamente el respeto ambiental, la ética y el bienestar social dentro de su estrategia productiva." },
-      { dur: 12, tag: "0:18 - 0:30", sub: "Su base es el modelo de la Triple Cuenta de Resultados: equilibrar simultáneamente Personas, Planeta y Rentabilidad económica para generar valor sostenible." }
-    ]
-  },
-  {
-    name: "Bloque 2 · Los 4 Pilares y la Internalización de Costos",
-    scenes: [
-      { dur: 10, tag: "0:30 - 0:40", sub: "Bajo estándares internacionales como ISO 26000 y el CEMEFI, una ESR se sostiene en cuatro pilares: Ética empresarial, Calidad de vida laboral, Vinculación comunitaria y Medio ambiente." },
-      { dur: 10, tag: "0:40 - 0:50", sub: "Económicamente, la diferencia clave está en los costos. Mientras el modelo tradicional externaliza su contaminación hacia la sociedad, una ESR internaliza sus costos." },
-      { dur: 10, tag: "0:50 - 1:00", sub: "Esto separa el simple marketing verde, o Greenwashing, de la sustentabilidad real verificada con métricas de huella hídrica y reducción de emisiones." }
-    ]
-  },
-  {
-    name: "Bloque 3 · Ciclo de Vida, Economía Circular y Desarrollo Regional",
-    scenes: [
-      { dur: 10, tag: "1:00 - 1:10", sub: "Para reducir su huella ecológica, las ESR aplican el análisis del ciclo de vida, transformando cadenas lineales de extracción y desecho en sistemas de economía circular." },
-      { dur: 10, tag: "1:10 - 1:20", sub: "Lejos de ser un gasto, la responsabilidad social impulsa la competitividad: reduce hasta 32% los costos energéticos y abre el acceso a bonos verdes e inversión ESG." },
-      { dur: 10, tag: "1:20 - 1:30", sub: "Además, detona el desarrollo regional al integrar proveedores locales y valorar económicamente los servicios ambientales como el agua, el suelo y los bosques." }
-    ]
-  },
-  {
-    name: "Bloque 4 · Caso de Estudio Real: Grupo Bimbo",
-    scenes: [
-      { dur: 10, tag: "1:30 - 1:40", sub: "Un ejemplo tangible en México y el mundo es Grupo Bimbo, que opera hoy con energía eléctrica 100% renovable proveniente de parques eólicos y techos solares." },
-      { dur: 10, tag: "1:40 - 1:50", sub: "En logística sustentable, supera los 4,200 vehículos eléctricos de reparto, muchos diseñados e integrados en el país por su filial de ingeniería Moldex." },
-      { dur: 10, tag: "1:50 - 2:00", sub: "Y en su cadena agrícola, impulsa más de 500 mil hectáreas de agricultura regenerativa junto con un 94% de empaques totalmente reciclables o biodegradables." }
-    ]
-  },
-  {
-    name: "Bloque 5 · Síntesis Económica y Créditos del Equipo 4",
-    scenes: [
-      { dur: 14, tag: "2:00 - 2:14", sub: "En conclusión, las Empresas Socialmente Responsables demuestran que la viabilidad económica del siglo XXI depende de regenerar el capital natural y social que hace posible toda producción." },
-      { dur: 16, tag: "2:14 - 2:30", sub: "Proyecto presentado para la unidad de Escenario Económico por el Equipo 4: Luciano Bustillos, David García, Luis Payán y Armando Loya. Muchas gracias." }
-    ]
-  }
-];
-
-let currentBlock = 0;
-let blockTime = 0;
-let lastFrame = performance.now();
-let subOn = true;
-let lastSceneIndex = -1;
-
-// --- EXPORTADOR NATIVO MP4 / WEBM EN 1080p ---
-let mediaRecorder = null;
-let recordedChunks = [];
-let isExporting = false;
-let exportFullVideo = false;
-let exportElapsed = 0;
-let exportTargetDuration = 30;
-let lastExportedFile = null;
-
-function getSupportedMimeType() {
-  const types = [
-    'video/mp4;codecs=avc1.42E01E',
-    'video/mp4',
-    'video/webm;codecs=vp9',
-    'video/webm'
-  ];
-  for (const t of types) {
-    if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
-  }
-  return '';
-}
-
-function startExport(full) {
-  if (!window.MediaRecorder) {
-    alert('Tu navegador actual bloquea MediaRecorder. Abre este código en Safari para exportar el MP4.');
-    return;
-  }
-  exportFullVideo = full;
-  exportTargetDuration = full ? 150 : 30;
-  exportElapsed = 0;
-  if (full) currentBlock = 0;
-  blockTime = 0;
-  updateBlockButtons();
-
-  const stream = canvas.captureStream(60);
-  const mimeType = getSupportedMimeType();
-  const options = mimeType ? { mimeType, videoBitsPerSecond: 16000000 } : { videoBitsPerSecond: 16000000 };
-
-  recordedChunks = [];
-  mediaRecorder = new MediaRecorder(stream, options);
-  mediaRecorder.ondataavailable = (e) => {
-    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-  };
-  mediaRecorder.onstop = () => {
-    const ext = (mimeType && mimeType.includes('mp4')) ? 'mp4' : 'mp4';
-    const blob = new Blob(recordedChunks, { type: mimeType || 'video/mp4' });
-    const filename = exportFullVideo ? `ESR_Equipo4_Completo_1080p.${ext}` : `ESR_Equipo4_Bloque${currentBlock + 1}_1080p.${ext}`;
-    lastExportedFile = new File([blob], filename, { type: blob.type });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.getElementById('directDownloadLink');
-    link.href = url;
-    link.download = filename;
-
-    document.getElementById('recBanner').classList.remove('active');
-    document.getElementById('downloadModal').classList.add('open');
-  };
-
-  mediaRecorder.start(250);
-  isExporting = true;
-  document.getElementById('recBanner').classList.add('active');
-}
-
-function stopExportEarly() {
-  if (isExporting && mediaRecorder && mediaRecorder.state !== 'inactive') {
-    isExporting = false;
-    mediaRecorder.stop();
-  }
-}
-
-async function shareVideoFile() {
-  if (!lastExportedFile) return;
-  if (navigator.canShare && navigator.canShare({ files: [lastExportedFile] })) {
-    try {
-      await navigator.share({
-        files: [lastExportedFile],
-        title: 'Video ESR 1080p - Equipo 4'
-      });
-    } catch (err) {}
-  } else {
-    document.getElementById('directDownloadLink').click();
-  }
-}
-
-function closeDownloadModal() {
-  document.getElementById('downloadModal').classList.remove('open');
-}
-
-// --- FUNCIONES DE DIBUJO EN FULL HD ---
-function roundRect(x, y, w, h, r, fill, stroke) {
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
-  else ctx.rect(x, y, w, h);
-  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke(); }
-}
-
-function drawShadowCard(x, y, w, h, r = 24, bg = '#FFFFFF') {
-  ctx.save();
-  ctx.shadowColor = 'rgba(29, 29, 31, 0.08)';
-  ctx.shadowBlur = 28;
-  ctx.shadowOffsetY = 10;
-  roundRect(x, y, w, h, r, bg, 'rgba(0,0,0,0.06)');
-  ctx.restore();
-}
-
-function drawBadge(x, y, text, bg = '#DCFCE7', fg = '#15803D') {
-  ctx.font = '700 13px -apple-system, sans-serif';
-  const tw = ctx.measureText(text).width + 28;
-  roundRect(x - tw / 2, y - 15, tw, 30, 999, bg, null);
-  ctx.fillStyle = fg;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, x, y);
-}
-
-function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
-
-function drawBackground(t) {
-  const grad = ctx.createLinearGradient(0, 0, W, H);
-  grad.addColorStop(0, '#FAF8F5');
-  grad.addColorStop(0.5, '#F4F1EA');
-  grad.addColorStop(1, '#ECFDF5');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
-
-  const glow1 = ctx.createRadialGradient(W * 0.2 + Math.sin(t * 0.5) * 40, H * 0.25, 10, W * 0.2, H * 0.25, W * 0.45);
-  glow1.addColorStop(0, 'rgba(22, 163, 74, 0.08)');
-  glow1.addColorStop(1, 'rgba(22, 163, 74, 0)');
-  ctx.fillStyle = glow1;
-  ctx.fillRect(0, 0, W, H);
-
-  const glow2 = ctx.createRadialGradient(W * 0.8 - Math.cos(t * 0.4) * 40, H * 0.75, 10, W * 0.8, H * 0.75, W * 0.45);
-  glow2.addColorStop(0, 'rgba(217, 119, 6, 0.08)');
-  glow2.addColorStop(1, 'rgba(217, 119, 6, 0)');
-  ctx.fillStyle = glow2;
-  ctx.fillRect(0, 0, W, H);
-}
-
-function renderScene(bIdx, sIdx, localT, sceneDur, globalT) {
-  const p = Math.min(1, localT / 0.8);
-  const enter = easeOutCubic(p);
-  const cx = W / 2, cy = H / 2 - 15;
-
-  if (bIdx === 0) {
-    if (sIdx === 0) {
-      drawBadge(cx, cy - 135 * enter, "UNIDAD 4 · ESCENARIO ECONÓMICO · TEMA 4.8.2", '#DCFCE7', '#15803D');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 58px -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText("Empresas Socialmente", cx, cy - 55);
-      ctx.fillStyle = '#16A34A';
-      ctx.fillText("Responsables (ESR)", cx, cy + 15);
-
-      ctx.fillStyle = '#6E6E73';
-      ctx.font = '500 20px -apple-system, sans-serif';
-      ctx.fillText("Estrategias de sustentabilidad, internalización de costos y creación de valor compartido", cx, cy + 75);
-
-      const tags = ["🌱 Sustentabilidad Ambiental", "🤝 Bienestar Social", "📈 Viabilidad Económica"];
-      tags.forEach((label, i) => {
-        const x = cx + (i - 1) * 280;
-        const y = cy + 145 + (1 - enter) * 30;
-        drawShadowCard(x - 125, y - 24, 250, 48, 999);
-        ctx.fillStyle = '#1D1D1F';
-        ctx.font = '600 15px -apple-system, sans-serif';
-        ctx.fillText(label, x, y + 2);
-      });
-    } else if (sIdx === 1) {
-      drawBadge(cx, cy - 190, "EVOLUCIÓN DEL MODELO EMPRESARIAL", '#FEF3C7', '#B45309');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 40px -apple-system, sans-serif';
-      ctx.fillText("Empresa Tradicional vs. Empresa ESR", cx, cy - 135);
-
-      const cardW = 410, cardH = 255;
-      drawShadowCard(cx - cardW - 22, cy - 80, cardW, cardH, 28, '#FFF5F5');
-      ctx.fillStyle = '#DC2626';
-      ctx.font = '700 22px -apple-system, sans-serif';
-      ctx.fillText("🏭 Enfoque Lineal Tradicional", cx - cardW/2 - 22, cy - 30);
-      ctx.fillStyle = '#4B5563';
-      ctx.font = '500 16px -apple-system, sans-serif';
-      ["• Maximiza utilidad a corto plazo", "• Externaliza costos ambientales", "• Uso intensivo de recursos finitos", "• Impacto comunitario secundario"].forEach((item, i) => {
-        ctx.fillText(item, cx - cardW/2 - 22, cy + 20 + i * 34);
-      });
-
-      drawShadowCard(cx + 22, cy - 80, cardW, cardH, 28, '#F0FDF4');
-      ctx.fillStyle = '#16A34A';
-      ctx.font = '700 22px -apple-system, sans-serif';
-      ctx.fillText("🌿 Modelo ESR (Sustentable)", cx + cardW/2 + 22, cy - 30);
-      ctx.fillStyle = '#1F2937';
-      ctx.font = '600 16px -apple-system, sans-serif';
-      ["✓ Valor económico y social a largo plazo", "✓ Internaliza su huella ecológica", "✓ Economía circular y energía limpia", "✓ Desarrollo regional y ética laboral"].forEach((item, i) => {
-        ctx.fillText(item, cx + cardW/2 + 22, cy + 20 + i * 34);
-      });
-    } else {
-      drawBadge(cx, cy - 195, "TRIPLE CUENTA DE RESULTADOS (ELKINGTON)", '#DCFCE7', '#15803D');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 40px -apple-system, sans-serif';
-      ctx.fillText("El Equilibrio de las 3P: Personas, Planeta y Profit", cx, cy - 140);
-
-      const nodes = [
-        { label: "PLANETA", sub: "Capital Natural", x: cx, y: cy - 35, color: 'rgba(22, 163, 74, 0.22)', stroke: '#16A34A' },
-        { label: "PERSONAS", sub: "Capital Social", x: cx - 105, y: cy + 95, color: 'rgba(2, 132, 199, 0.22)', stroke: '#0284C7' },
-        { label: "RENTABILIDAD", sub: "Capital Económico", x: cx + 105, y: cy + 95, color: 'rgba(217, 119, 6, 0.22)', stroke: '#D97706' }
-      ];
-      nodes.forEach(n => {
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, 94 * enter, 0, Math.PI * 2);
-        ctx.fillStyle = n.color;
-        ctx.fill();
-        ctx.strokeStyle = n.stroke;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        ctx.fillStyle = '#1D1D1F';
-        ctx.font = '800 18px -apple-system, sans-serif';
-        ctx.fillText(n.label, n.x, n.y - 6);
-        ctx.fillStyle = '#4B5563';
-        ctx.font = '500 13px -apple-system, sans-serif';
-        ctx.fillText(n.sub, n.x, n.y + 16);
-      });
-      drawBadge(cx, cy + 52, "ESR", '#1D1D1F', '#FFFFFF');
-    }
-  }
-  else if (bIdx === 1) {
-    if (sIdx === 0) {
-      drawBadge(cx, cy - 195, "NORMA ISO 26000 · DISTINTIVO CEMEFI", '#DCFCE7', '#15803D');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 40px -apple-system, sans-serif';
-      ctx.fillText("Los 4 Pilares de una Empresa Socialmente Responsable", cx, cy - 140);
-
-      const pillars = [
-        { icon: "⚖️", title: "1. Ética y Gobernanza", desc: "Transparencia, anticorrupción y comercio justo" },
-        { icon: "👩‍💼", title: "2. Calidad de Vida", desc: "Seguridad laboral, salarios dignos e inclusión" },
-        { icon: "🏘️", title: "3. Comunidad", desc: "Inversión social e impulso a proveedores locales" },
-        { icon: "🌍", title: "4. Medio Ambiente", desc: "Descarbonización, agua y cero residuos" }
-      ];
-      pillars.forEach((pl, i) => {
-        const col = i % 2, row = Math.floor(i / 2);
-        const w = 395, h = 114;
-        const x = cx + (col === 0 ? -w - 16 : 16);
-        const y = cy - 85 + row * (h + 18);
-        drawShadowCard(x, y, w, h, 22);
-        ctx.textAlign = 'left';
-        ctx.font = '32px sans-serif';
-        ctx.fillText(pl.icon, x + 22, y + 64);
-        ctx.fillStyle = '#1D1D1F';
-        ctx.font = '700 19px -apple-system, sans-serif';
-        ctx.fillText(pl.title, x + 70, y + 46);
-        ctx.fillStyle = '#6E6E73';
-        ctx.font = '500 14px -apple-system, sans-serif';
-        ctx.fillText(pl.desc, x + 70, y + 74);
-      });
-      ctx.textAlign = 'center';
-    } else if (sIdx === 1) {
-      drawBadge(cx, cy - 195, "TEMA 4.5 · EXTERNALIZACIÓN VS INTERNALIZACIÓN", '#FEF3C7', '#B45309');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 40px -apple-system, sans-serif';
-      ctx.fillText("¿Quién paga el costo real de producir?", cx, cy - 140);
-
-      const prog = Math.min(1, localT / 3.5);
-      const boxW = 840;
-      drawShadowCard(cx - boxW / 2, cy - 90, boxW, 265, 26);
-      ctx.textAlign = 'left';
-      const leftX = cx - boxW / 2 + 38;
-      const barMax = boxW - 76;
-
-      ctx.fillStyle = '#DC2626';
-      ctx.font = '700 18px -apple-system, sans-serif';
-      ctx.fillText("Empresa que EXTERNALIZA costos (Traslada el daño ambiental a la sociedad)", leftX, cy - 40);
-      roundRect(leftX, cy - 20, barMax * prog, 36, 10, '#FCA5A5');
-      ctx.fillStyle = '#7F1D1D';
-      ctx.font = '700 14px -apple-system, sans-serif';
-      ctx.fillText("Precio aparente bajo  |  +Costo oculto en ríos, salud pública y carbono", leftX + 14, cy + 3);
-
-      ctx.fillStyle = '#16A34A';
-      ctx.font = '700 18px -apple-system, sans-serif';
-      ctx.fillText("Empresa ESR que INTERNALIZA costos (Inversión en energía limpia y plantas de agua)", leftX, cy + 65);
-      roundRect(leftX, cy + 85, barMax * prog, 36, 10, '#86EFAC');
-      ctx.fillStyle = '#14532D';
-      ctx.font = '700 14px -apple-system, sans-serif';
-      ctx.fillText("Asume el costo ambiental en su proceso  →  Cero pasivos ecológicos hacia la comunidad", leftX + 14, cy + 108);
-      ctx.textAlign = 'center';
-    } else {
-      drawBadge(cx, cy - 190, "VERIFICACIÓN Y MÉTRICAS ESG", '#DCFCE7', '#15803D');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 40px -apple-system, sans-serif';
-      ctx.fillText("Greenwashing vs. Sustentabilidad Real", cx, cy - 135);
-
-      const cw = 390;
-      drawShadowCard(cx - cw - 18, cy - 75, cw, 230, 24, '#FFFBEB');
-      ctx.fillStyle = '#D97706';
-      ctx.font = '800 22px -apple-system, sans-serif';
-      ctx.fillText("⚠️ Greenwashing (Maquillaje)", cx - cw/2 - 18, cy - 25);
-      ctx.fillStyle = '#4B5563';
-      ctx.font = '500 16px -apple-system, sans-serif';
-      ctx.fillText("Eslogans ecológicos sin auditoría", cx - cw/2 - 18, cy + 25);
-      ctx.fillText("Emisiones Alcance 1, 2 y 3 ocultas", cx - cw/2 - 18, cy + 60);
-      ctx.fillText("Sin metas científicas de reducción", cx - cw/2 - 18, cy + 95);
-
-      drawShadowCard(cx + 18, cy - 75, cw, 230, 24, '#F0FDF4');
-      ctx.fillStyle = '#16A34A';
-      ctx.font = '800 22px -apple-system, sans-serif';
-      ctx.fillText("✅ ESR Auditada (Reportes GRI)", cx + cw/2 + 18, cy - 25);
-      ctx.fillStyle = '#1F2937';
-      ctx.font = '600 16px -apple-system, sans-serif';
-      ctx.fillText("Metas validadas por Science Based Targets", cx + cw/2 + 18, cy + 25);
-      ctx.fillText("Trazabilidad total de cadena de suministro", cx + cw/2 + 18, cy + 60);
-      ctx.fillText("Auditoría externa anual pública", cx + cw/2 + 18, cy + 95);
-    }
-  }
-  else if (bIdx === 2) {
-    if (sIdx === 0) {
-      drawBadge(cx, cy - 195, "TEMA 4.8.1 · ANÁLISIS DEL CICLO DE VIDA Y HUELLA ECOLÓGICA", '#DCFCE7', '#15803D');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 40px -apple-system, sans-serif';
-      ctx.fillText("De la Economía Lineal a la Economía Circular", cx, cy - 140);
-
-      const steps = ["🌱 Materia Prima", "⚡ Producción Limpia", "📦 Distribución", "♻️ Reciclaje / Reuso", "🌿 Regeneración"];
-      const R = 135;
-      steps.forEach((st, i) => {
-        const ang = (i / steps.length) * Math.PI * 2 - Math.PI / 2 + globalT * 0.25;
-        const x = cx + Math.cos(ang) * R * 1.45;
-        const y = cy + 25 + Math.sin(ang) * R * 0.85;
-        drawShadowCard(x - 95, y - 26, 190, 52, 999, '#FFFFFF');
-        ctx.fillStyle = '#15803D';
-        ctx.font = '700 15px -apple-system, sans-serif';
-        ctx.fillText(st, x, y + 4);
-      });
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 20px -apple-system, sans-serif';
-      ctx.fillText("Cero Residuos", cx, cy + 28);
-    } else if (sIdx === 1) {
-      drawBadge(cx, cy - 195, "IMPACTO EN EL ESCENARIO ECONÓMICO", '#FEF3C7', '#B45309');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 40px -apple-system, sans-serif';
-      ctx.fillText("Rentabilidad y Competitividad de una ESR", cx, cy - 140);
-
-      const stats = [
-        { val: "-32%", title: "Costos Operativos", sub: "Por eficiencia energética y circularidad", col: "#16A34A" },
-        { val: "+45%", title: "Inversión y Bonos Verdes", sub: "Acceso preferencial a capital ESG", col: "#0284C7" },
-        { val: "3.4x", title: "Retención de Talento", sub: "Mayor productividad y estabilidad", col: "#D97706" }
-      ];
-      stats.forEach((st, i) => {
-        const x = cx + (i - 1) * 285;
-        drawShadowCard(x - 130, cy - 75, 260, 230, 26);
-        ctx.fillStyle = st.col;
-        ctx.font = '800 54px -apple-system, sans-serif';
-        ctx.fillText(st.val, x, cy + 5);
-        ctx.fillStyle = '#1D1D1F';
-        ctx.font = '700 19px -apple-system, sans-serif';
-        ctx.fillText(st.title, x, cy + 55);
-        ctx.fillStyle = '#6E6E73';
-        ctx.font = '500 14px -apple-system, sans-serif';
-        ctx.fillText(st.sub, x, cy + 90);
-      });
-    } else {
-      drawBadge(cx, cy - 195, "TEMAS 4.7 Y 4.8.3 · SERVICIOS AMBIENTALES Y DESARROLLO REGIONAL", '#DCFCE7', '#15803D');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 38px -apple-system, sans-serif';
-      ctx.fillText("Valoración de Servicios Ambientales y Economía Local", cx, cy - 140);
-
-      const bw = 840;
-      drawShadowCard(cx - bw / 2, cy - 80, bw, 240, 28);
-      const items = [
-        { icon: "💧", t: "Captura Hídrica y Bosques", d: "Pago por servicios ambientales en cuencas" },
-        { icon: "🌾", t: "Proveeduría Regional", d: "Cadenas cortas que fortalecen el PIB local" },
-        { icon: "☀️", t: "Infraestructura Limpia", d: "Empleo técnico en energía solar y reciclaje" }
-      ];
-      items.forEach((it, i) => {
-        const x = cx + (i - 1) * 270;
-        ctx.font = '42px sans-serif';
-        ctx.fillText(it.icon, x, cy - 15);
-        ctx.fillStyle = '#1D1D1F';
-        ctx.font = '700 18px -apple-system, sans-serif';
-        ctx.fillText(it.t, x, cy + 35);
-        ctx.fillStyle = '#6E6E73';
-        ctx.font = '500 13.5px -apple-system, sans-serif';
-        ctx.fillText(it.d, x, cy + 68);
-      });
-    }
-  }
-  else if (bIdx === 3) {
-    if (sIdx === 0) {
-      drawBadge(cx, cy - 195, "CASO DE ESTUDIO APLICADO EN MÉXICO · GRUPO BIMBO", '#FEF3C7', '#B45309');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 40px -apple-system, sans-serif';
-      ctx.fillText("100% Energía Eléctrica Renovable Global", cx, cy - 140);
-
-      const bw = 820;
-      drawShadowCard(cx - bw / 2, cy - 85, bw, 250, 28, '#FFFFFF');
-      const tx = cx - 230, ty = cy + 65;
-      ctx.strokeStyle = '#16A34A';
-      ctx.lineWidth = 6;
-      ctx.beginPath(); ctx.moveTo(tx, ty - 95); ctx.lineTo(tx, ty + 65); ctx.stroke();
-      for (let b = 0; b < 3; b++) {
-        const a = globalT * 2.5 + (b * Math.PI * 2) / 3;
-        ctx.beginPath();
-        ctx.moveTo(tx, ty - 95);
-        ctx.lineTo(tx + Math.cos(a) * 68, ty - 95 + Math.sin(a) * 68);
-        ctx.stroke();
+    const KEYNOTE_BLOCKS = [
+      {
+        id: 0,
+        shortTitle: "Bloque 1 • ¿Qué es una ESR?",
+        sceneLabels: ["01. Portada Keynote", "02. Tradicional vs ESR", "03. Triple Cuenta (3P)"],
+        scenes: [
+          {
+            dur: 8,
+            tag: "0:00 - 0:08",
+            sub: "En el escenario económico actual, el éxito de una organización ya no se mide únicamente por sus utilidades trimestrales, sino por su impacto integral en el entorno."
+          },
+          {
+            dur: 11,
+            tag: "0:08 - 0:19",
+            sub: "Una Empresa Socialmente Responsable, o ESR, es aquella que integra de forma activa y voluntaria el respeto ambiental, la ética y el bienestar social dentro de su operación productiva."
+          },
+          {
+            dur: 11,
+            tag: "0:19 - 0:30",
+            sub: "Su fundamento económico es la Triple Cuenta de Resultados: equilibrar simultáneamente Personas, Planeta y Rentabilidad para crear valor duradero."
+          }
+        ]
+      },
+      {
+        id: 1,
+        shortTitle: "Bloque 2 • Los 4 Pilares y Costos",
+        sceneLabels: ["01. 4 Pilares ISO/CEMEFI", "02. Internalizar Costos", "03. ESR vs Greenwashing"],
+        scenes: [
+          {
+            dur: 10,
+            tag: "0:30 - 0:40",
+            sub: "Bajo estándares internacionales como ISO 26000 y el CEMEFI, una ESR se sostiene en cuatro pilares: ética empresarial, calidad de vida laboral, vinculación comunitaria y preservación ambiental."
+          },
+          {
+            dur: 10,
+            tag: "0:40 - 0:50",
+            sub: "Económicamente, la diferencia clave está en los costos: mientras la empresa tradicional externaliza su contaminación a la sociedad, una ESR internaliza sus costos invirtiendo en procesos limpios."
+          },
+          {
+            dur: 10,
+            tag: "0:50 - 1:00",
+            sub: "Esto separa la simulación publicitaria, conocida como Greenwashing, de la responsabilidad social auténtica respaldada por auditorías y métricas científicas."
+          }
+        ]
+      },
+      {
+        id: 2,
+        shortTitle: "Bloque 3 • Economía Circular y Región",
+        sceneLabels: ["01. Economía Circular", "02. Competitividad ESG", "03. Desarrollo Regional"],
+        scenes: [
+          {
+            dur: 10,
+            tag: "1:00 - 1:10",
+            sub: "Para reducir su huella ecológica, las ESR aplican el análisis del ciclo de vida, transformando procesos lineales de extracción y desecho en sistemas de economía circular."
+          },
+          {
+            dur: 10,
+            tag: "1:10 - 1:20",
+            sub: "Lejos de ser un gasto, la sustentabilidad fortalece la competitividad: reduce hasta 32% los costos energéticos y abre el acceso a bonos verdes e inversión internacional."
+          },
+          {
+            dur: 10,
+            tag: "1:20 - 1:30",
+            sub: "Además, impulsa el desarrollo regional al integrar proveedores locales y valorar económicamente los servicios ambientales como el agua, la captura de carbono y el suelo."
+          }
+        ]
+      },
+      {
+        id: 3,
+        shortTitle: "Bloque 4 • Caso de Estudio: Grupo Bimbo",
+        sceneLabels: ["01. 100% Energía Limpia", "02. Flota Eléctrica Moldex", "03. Campo Regenerativo"],
+        scenes: [
+          {
+            dur: 10,
+            tag: "1:30 - 1:40",
+            sub: "Un caso ejemplar en la economía real es Grupo Bimbo, empresa mexicana que hoy opera con energía eléctrica 100% renovable a nivel global gracias a parques eólicos y solares."
+          },
+          {
+            dur: 10,
+            tag: "1:40 - 1:50",
+            sub: "Para descarbonizar su reparto urbano, supera los 4,200 vehículos eléctricos cero emisiones, diseñados e integrados en México por su filial de ingeniería Moldex."
+          },
+          {
+            dur: 10,
+            tag: "1:50 - 2:00",
+            sub: "Y en el ciclo de vida agrícola, impulsa más de 500 mil hectáreas de agricultura regenerativa junto con un 94% de empaques reciclables o biodegradables."
+          }
+        ]
+      },
+      {
+        id: 4,
+        shortTitle: "Bloque 5 • Conclusión y Créditos Equipo 4",
+        sceneLabels: ["01. Síntesis Económica", "02. Créditos Equipo 4", "03. Cierre Final"],
+        scenes: [
+          {
+            dur: 13,
+            tag: "2:00 - 2:13",
+            sub: "En conclusión, las Empresas Socialmente Responsables demuestran que la economía del siglo XXI solo prospera cuando regenera los ecosistemas y comunidades que hacen posible toda producción."
+          },
+          {
+            dur: 17,
+            tag: "2:13 - 2:30",
+            sub: "Producción realizada para la unidad de Escenario Económico por el Equipo 4: Luciano Bustillos, David García, Luis Payán y Armando Loya. Muchas gracias por su atención."
+          }
+        ]
       }
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#16A34A';
-      ctx.font = '800 56px -apple-system, sans-serif';
-      ctx.fillText("100%", cx - 75, cy - 10);
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '700 22px -apple-system, sans-serif';
-      ctx.fillText("Operación con Electricidad Limpia", cx - 75, cy + 30);
-      ctx.fillStyle = '#6E6E73';
-      ctx.font = '500 16px -apple-system, sans-serif';
-      ctx.fillText("• Parque Eólico Piedra Larga (Oaxaca) y sistemas solares", cx - 75, cy + 66);
-      ctx.fillText("• Meta verificada hacia Cero Emisiones Netas 2050", cx - 75, cy + 94);
-      ctx.textAlign = 'center';
-    } else if (sIdx === 1) {
-      drawBadge(cx, cy - 195, "INNOVACIÓN E INGENIERÍA NACIONAL (MOLDEX)", '#DCFCE7', '#15803D');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 40px -apple-system, sans-serif';
-      ctx.fillText("+4,200 Vehículos Eléctricos de Reparto", cx, cy - 140);
+    ];
 
-      const bw = 810;
-      drawShadowCard(cx - bw / 2, cy - 80, bw, 240, 28);
-      const vx = cx - 220 + Math.sin(globalT * 2) * 14, vy = cy + 25;
-      roundRect(vx - 82, vy - 44, 165, 74, 16, '#16A34A');
-      roundRect(vx + 34, vy - 32, 38, 30, 8, '#DCFCE7');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.beginPath(); ctx.arc(vx - 44, vy + 30, 16, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(vx + 44, vy + 30, 16, 0, Math.PI * 2); ctx.fill();
+    /*************************************************************************
+     * 2. ENGINE STATE & APPLE KEYNOTE EASING CURVES
+     *************************************************************************/
+    const canvas = document.getElementById('keynoteCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = 1920;
+    const H = 1080;
 
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 25px -apple-system, sans-serif';
-      ctx.fillText("La flotilla eléctrica más grande de América Latina", cx - 65, cy - 15);
-      ctx.fillStyle = '#4B5563';
-      ctx.font = '500 16.5px -apple-system, sans-serif';
-      ctx.fillText("• Desarrollada en México por su filial tecnológica Moldex", cx - 65, cy + 25);
-      ctx.fillText("• Reduce miles de toneladas de CO₂ en reparto urbano", cx - 65, cy + 58);
-      ctx.textAlign = 'center';
-    } else {
-      drawBadge(cx, cy - 195, "CAMPO VIVO Y ECONOMÍA CIRCULAR", '#FEF3C7', '#B45309');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 40px -apple-system, sans-serif';
-      ctx.fillText("Agricultura Regenerativa y Empaques Sustentables", cx, cy - 140);
+    let currentBlockIndex = 0;
+    let currentTime = 0; // 0.0 to 30.0s per block
+    const BLOCK_DURATION = 30.0;
+    let isPlaying = true;
+    let continuousMode = true;
+    let showTeleprompter = true;
+    let lastFrameTime = performance.now();
+    let lastTriggeredSceneKey = -1;
 
-      const cw = 395;
-      drawShadowCard(cx - cw - 18, cy - 80, cw, 230, 26, '#FFFBEB');
-      ctx.fillStyle = '#D97706';
-      ctx.font = '800 48px -apple-system, sans-serif';
-      ctx.fillText("+500,000 ha", cx - cw/2 - 18, cy - 5);
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '700 20px -apple-system, sans-serif';
-      ctx.fillText("Agricultura Regenerativa", cx - cw/2 - 18, cy + 40);
-      ctx.fillStyle = '#6E6E73';
-      ctx.font = '500 15px -apple-system, sans-serif';
-      ctx.fillText("Restauración de suelos de trigo y maíz", cx - cw/2 - 18, cy + 75);
+    // --- GRABADOR DE VIDEO INTEGRADO (DIRECT EXPORTER) ---
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecordingVideo = false;
+    let recordFullTimeline = false;
+    let recordTargetDuration = 30;
+    let recordElapsed = 0;
 
-      drawShadowCard(cx + 18, cy - 80, cw, 230, 26, '#F0FDF4');
-      ctx.fillStyle = '#16A34A';
-      ctx.font = '800 48px -apple-system, sans-serif';
-      ctx.fillText("94% — 100%", cx + cw/2 + 18, cy - 5);
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '700 20px -apple-system, sans-serif';
-      ctx.fillText("Empaques Reciclables / Bio", cx + cw/2 + 18, cy + 40);
-      ctx.fillStyle = '#6E6E73';
-      ctx.font = '500 15px -apple-system, sans-serif';
-      ctx.fillText("Reducción de huella plástica e hídrica", cx + cw/2 + 18, cy + 75);
+    function startDirectExport(full) {
+      if (!window.MediaRecorder) {
+        alert('Tu navegador no soporta MediaRecorder. Usa Chrome o Edge en Windows.');
+        return;
+      }
+      ensureAudioContext();
+      recordFullTimeline = full;
+      recordTargetDuration = full ? 150 : 30;
+      recordElapsed = 0;
+      if (full) {
+        currentBlockIndex = 0;
+      }
+      currentTime = 0;
+      isPlaying = true;
+      document.getElementById('pauseIcon').classList.remove('hidden');
+      document.getElementById('playIcon').classList.add('hidden');
+      updateBlockButtonsUI();
+
+      const stream = canvas.captureStream(60);
+      let mimeType = 'video/webm;codecs=vp9';
+      if (MediaRecorder.isTypeSupported('video/mp4')) mimeType = 'video/mp4';
+      else if (MediaRecorder.isTypeSupported('video/webm')) mimeType = 'video/webm';
+
+      recordedChunks = [];
+      try {
+        mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 18000000 });
+      } catch (e) {
+        mediaRecorder = new MediaRecorder(stream);
+      }
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const ext = (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('mp4')) ? 'mp4' : 'webm';
+        const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/mp4' });
+        const url = URL.createObjectURL(blob);
+        const btn = document.getElementById('downloadVideoBtn');
+        btn.href = url;
+        btn.download = recordFullTimeline ? `ESR_Equipo4_Completo.${ext}` : `ESR_Equipo4_Bloque${currentBlockIndex + 1}.${ext}`;
+        
+        document.getElementById('exportStatusBanner').classList.remove('flex');
+        document.getElementById('exportStatusBanner').classList.add('hidden');
+        document.getElementById('downloadModal').classList.remove('hidden');
+        document.getElementById('downloadModal').classList.add('flex');
+      };
+
+      mediaRecorder.start(200);
+      isRecordingVideo = true;
+      document.getElementById('exportStatusBanner').classList.remove('hidden');
+      document.getElementById('exportStatusBanner').classList.add('flex');
     }
-  }
-  else if (bIdx === 4) {
-    if (sIdx === 0) {
-      drawBadge(cx, cy - 180, "CONCLUSIÓN · UNIDAD 4 ESCENARIO ECONÓMICO", '#DCFCE7', '#15803D');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 42px -apple-system, sans-serif';
-      ctx.fillText("La Sustentabilidad es el Nuevo Estándar Económico", cx, cy - 115);
 
-      const bw = 840;
-      drawShadowCard(cx - bw / 2, cy - 60, bw, 210, 28);
-      ctx.fillStyle = '#1F2937';
-      ctx.font = '600 21px -apple-system, sans-serif';
-      ctx.fillText("“Una Empresa Socialmente Responsable demuestra que la rentabilidad", cx, cy + 8);
-      ctx.fillText("más sólida es aquella que regenera los ecosistemas y las comunidades", cx, cy + 44);
-      ctx.fillStyle = '#16A34A';
-      ctx.fillText("que hacen posible toda actividad económica.”", cx, cy + 80);
-    } else {
-      drawBadge(cx, cy - 195, "CRÉDITOS DE PRODUCCIÓN · EQUIPO 4", '#1D1D1F', '#FFFFFF');
-      ctx.fillStyle = '#1D1D1F';
-      ctx.font = '800 42px -apple-system, sans-serif';
-      ctx.fillText("Desarrollo Sustentable · Escenario Económico", cx, cy - 140);
-      ctx.fillStyle = '#16A34A';
-      ctx.font = '700 21px -apple-system, sans-serif';
-      ctx.fillText("Tema 4.8.2 — Empresas Socialmente Responsables (ESR)", cx, cy - 95);
+    function stopExportDirectly() {
+      if (isRecordingVideo && mediaRecorder && mediaRecorder.state !== 'inactive') {
+        isRecordingVideo = false;
+        mediaRecorder.stop();
+      }
+    }
 
-      const members = [
-        { initials: "LB", name: "Luciano Bustillos", col: "#16A34A" },
-        { initials: "DG", name: "David García", col: "#0284C7" },
-        { initials: "LP", name: "Luis Payán", col: "#D97706" },
-        { initials: "AL", name: "Armando Loya", col: "#15803D" }
-      ];
-      members.forEach((m, i) => {
-        const x = cx + (i - 1.5) * 215;
-        const y = cy + 35 + (1 - enter) * 25;
-        drawShadowCard(x - 98, y - 80, 196, 175, 24);
-        ctx.beginPath();
-        ctx.arc(x, y - 22, 31, 0, Math.PI * 2);
-        ctx.fillStyle = m.col;
-        ctx.fill();
+    function closeDownloadModal() {
+      document.getElementById('downloadModal').classList.remove('flex');
+      document.getElementById('downloadModal').classList.add('hidden');
+    }
+
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const invLerp = (a, b, v) => clamp((v - a) / (b - a), 0, 1);
+
+    function easeOutCubic(x) {
+      return 1 - Math.pow(1 - clamp(x, 0, 1), 3);
+    }
+    function easeOutQuart(x) {
+      return 1 - Math.pow(1 - clamp(x, 0, 1), 4);
+    }
+    function easeInOutCubic(x) {
+      const t = clamp(x, 0, 1);
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+    function easeAppleSpring(x) {
+      const t = clamp(x, 0, 1);
+      return 1 - Math.pow(1 - t, 3) * Math.cos(t * Math.PI * 0.85);
+    }
+
+    function fillRoundRect(ctx, x, y, w, h, r) {
+      const rad = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + rad, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rad);
+      ctx.arcTo(x + w, y + h, x, y + h, rad);
+      ctx.arcTo(x, y + h, x, y, rad);
+      ctx.arcTo(x, y, x + w, y, rad);
+      ctx.closePath();
+      ctx.fill();
+    }
+    function strokeRoundRect(ctx, x, y, w, h, r) {
+      const rad = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + rad, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rad);
+      ctx.arcTo(x + w, y + h, x, y + h, rad);
+      ctx.arcTo(x, y + h, x, y, rad);
+      ctx.arcTo(x, y, x + w, y, rad);
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+      let curY = y;
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+          ctx.fillText(line.trim(), x, curY);
+          line = words[n] + ' ';
+          curY += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line.trim(), x, curY);
+      return curY;
+    }
+
+    /*************************************************************************
+     * 3. PROCEDURAL ILLUSTRATIONS (Leaves, Wheat, Wind Turbines, Moldex Van)
+     *************************************************************************/
+    function drawBotanicalLeaf(ctx, x, y, scale = 1, angle = 0, color = '#16A34A') {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(0, 28);
+      ctx.bezierCurveTo(-26, 10, -24, -22, 0, -34);
+      ctx.bezierCurveTo(24, -22, 26, 10, 0, 28);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(0, 24);
+      ctx.lineTo(0, -24);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawWheatSpike(ctx, x, y, scale = 1, angle = 0, color = '#D97706') {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.scale(scale, scale);
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 38);
+      ctx.lineTo(0, -45);
+      ctx.stroke();
+      for (let i = 0; i < 5; i++) {
+        const gy = 12 - i * 11;
+        [-1, 1].forEach(dir => {
+          ctx.save();
+          ctx.translate(dir * 7, gy);
+          ctx.rotate(dir * 0.45);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 4.5, 9, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+      ctx.restore();
+    }
+
+    function drawWindTurbine(ctx, x, y, scale = 1, bladeAngle = 0) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = '#CBD5E1';
+      ctx.beginPath();
+      ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.lineTo(8, 220); ctx.lineTo(-8, 220);
+      ctx.closePath();
+      ctx.fill();
+      ctx.save();
+      ctx.rotate(bladeAngle);
+      for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.rotate((i * Math.PI * 2) / 3);
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = '800 19px -apple-system, sans-serif';
-        ctx.fillText(m.initials, x, y - 20);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(10, -45, 3, -118);
+        ctx.quadraticCurveTo(-5, -118, -3, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+      ctx.fillStyle = '#16A34A';
+      ctx.beginPath();
+      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
-        ctx.fillStyle = '#1D1D1F';
-        ctx.font = '700 17.5px -apple-system, sans-serif';
-        ctx.fillText(m.name, x, y + 42);
-        ctx.fillStyle = '#6E6E73';
-        ctx.font = '600 13px -apple-system, sans-serif';
-        ctx.fillText("Equipo 4", x, y + 66);
+    function drawElectricVan(ctx, x, y, scale = 1, wheelRot = 0) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.12)';
+      ctx.beginPath();
+      ctx.ellipse(0, 56, 130, 11, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.strokeStyle = '#CBD5E1';
+      ctx.lineWidth = 3;
+      fillRoundRect(ctx, -115, -55, 175, 95, 20);
+      strokeRoundRect(ctx, -115, -55, 175, 95, 20);
+
+      ctx.beginPath();
+      ctx.moveTo(50, -35); ctx.lineTo(95, -35);
+      ctx.quadraticCurveTo(122, -35, 128, 5);
+      ctx.lineTo(128, 28);
+      ctx.quadraticCurveTo(128, 40, 112, 40);
+      ctx.lineTo(50, 40);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#BAE6FD';
+      ctx.beginPath();
+      ctx.moveTo(62, -26); ctx.lineTo(94, -26);
+      ctx.quadraticCurveTo(114, -26, 118, 2);
+      ctx.lineTo(62, 2);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#16A34A';
+      fillRoundRect(ctx, -105, 8, 220, 12, 6);
+      drawBotanicalLeaf(ctx, -72, -16, 0.5, 0.25, '#16A34A');
+
+      ctx.fillStyle = '#0F172A';
+      ctx.font = '800 15px "Plus Jakarta Sans", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('REPARTO ELÉCTRICO', -42, -14);
+      ctx.font = '700 11px "Inter", sans-serif';
+      ctx.fillStyle = '#16A34A';
+      ctx.fillText('CERO EMISIONES • MOLDEX', -42, 2);
+
+      [-65, 82].forEach(wx => {
+        ctx.save();
+        ctx.translate(wx, 42);
+        ctx.fillStyle = '#0F172A';
+        ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#FAF8F5';
+        ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill();
+        ctx.rotate(wheelRot);
+        ctx.strokeStyle = '#16A34A';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(9, 0); ctx.moveTo(0, -9); ctx.lineTo(0, 9); ctx.stroke();
+        ctx.restore();
       });
+      ctx.restore();
     }
-  }
-}
 
-function animate(now) {
-  const dt = Math.min(0.1, (now - lastFrame) / 1000);
-  lastFrame = now;
-  blockTime += dt;
+    function drawWarmKeynoteBackground(t) {
+      const grad = ctx.createLinearGradient(0, 0, W, H);
+      grad.addColorStop(0, '#FAF8F5');
+      grad.addColorStop(0.55, '#F4EFE6');
+      grad.addColorStop(1, '#ECFDF5');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
 
-  if (isExporting) {
-    exportElapsed += dt;
-    const pct = Math.min(100, Math.round((exportElapsed / exportTargetDuration) * 100));
-    document.getElementById('recStatus').textContent = `🔴 Renderizando MP4 1080p (Limpio sin menús)... ${pct}%`;
-    if (exportElapsed >= exportTargetDuration) {
-      stopExportEarly();
+      const orb1X = W * 0.78 + Math.sin(t * 0.5) * 65;
+      const orb1Y = H * 0.22 + Math.cos(t * 0.4) * 45;
+      const g1 = ctx.createRadialGradient(orb1X, orb1Y, 10, orb1X, orb1Y, 640);
+      g1.addColorStop(0, 'rgba(22, 163, 74, 0.11)');
+      g1.addColorStop(1, 'rgba(22, 163, 74, 0)');
+      ctx.fillStyle = g1;
+      ctx.fillRect(0, 0, W, H);
+
+      const orb2X = W * 0.22 + Math.cos(t * 0.45) * 65;
+      const orb2Y = H * 0.78 + Math.sin(t * 0.5) * 45;
+      const g2 = ctx.createRadialGradient(orb2X, orb2Y, 10, orb2X, orb2Y, 640);
+      g2.addColorStop(0, 'rgba(217, 119, 6, 0.10)');
+      g2.addColorStop(1, 'rgba(217, 119, 6, 0)');
+      ctx.fillStyle = g2;
+      ctx.fillRect(0, 0, W, H);
     }
-  }
 
-  const block = BLOCKS[currentBlock];
-  const totalBlockDur = block.scenes.reduce((a, b) => a + b.dur, 0);
+    /*************************************************************************
+     * 4. RENDERERS FOR ALL 5 BLOCKS
+     *    No presenter names in Blocks 1-4; Team 4 credits at the end of Block 5
+     *************************************************************************/
+    function renderBlock0(t, sIdx, globalT) {
+      const cx = W / 2;
+      drawWarmKeynoteBackground(globalT);
 
-  if (blockTime >= totalBlockDur) {
-    currentBlock = (currentBlock + 1) % BLOCKS.length;
-    updateBlockButtons();
-    blockTime = 0;
-  }
+      if (sIdx === 0) {
+        // SCENE 1 (0-8s): CLEAN APPLE KEYNOTE COVER WITH SWAYING WHEAT LANDSCAPE (NO NAMES)
+        const p = easeAppleSpring(invLerp(0, 1.0, t));
 
-  let acc = 0, sIdx = 0, localT = 0, sDur = block.scenes[0].dur;
-  for (let i = 0; i < block.scenes.length; i++) {
-    if (blockTime < acc + block.scenes[i].dur) {
-      sIdx = i;
-      localT = blockTime - acc;
-      sDur = block.scenes[i].dur;
-      break;
+        // Soft organic hills at bottom
+        ctx.fillStyle = '#DCFCE7';
+        ctx.beginPath();
+        ctx.moveTo(0, 770);
+        ctx.bezierCurveTo(540, 690, 1280, 830, W, 735);
+        ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+        ctx.fill();
+
+        // Swaying Golden Wheat Field along bottom
+        for (let i = 0; i < 22; i++) {
+          const wx = 90 + i * 84;
+          const sway = Math.sin(globalT * 2.1 + i * 0.45) * 0.12;
+          drawWheatSpike(ctx, wx, 825 + (i % 3) * 14, 0.92, sway, '#D97706');
+        }
+
+        ctx.save();
+        ctx.translate(0, (1 - p) * 35);
+        ctx.textAlign = 'center';
+
+        ctx.fillStyle = '#DCFCE7';
+        fillRoundRect(ctx, cx - 310, 145, 620, 46, 23);
+        ctx.fillStyle = '#15803D';
+        ctx.font = '800 16px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('UNIDAD 4 • ESCENARIO ECONÓMICO • TEMA 4.8.2', cx, 174);
+
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 96px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Empresas Socialmente', cx, 315);
+
+        const grad = ctx.createLinearGradient(cx - 420, 0, cx + 420, 0);
+        grad.addColorStop(0, '#16A34A');
+        grad.addColorStop(0.5, '#0284C7');
+        grad.addColorStop(1, '#D97706');
+        ctx.fillStyle = grad;
+        ctx.font = 'italic 116px "Instrument Serif", Georgia, serif';
+        ctx.fillText('Responsables (ESR)', cx, 435);
+
+        ctx.fillStyle = '#475569';
+        ctx.font = '500 28px "Inter", sans-serif';
+        ctx.fillText('Estrategias de sustentabilidad, internalización de costos y creación de valor compartido', cx, 505);
+        ctx.restore();
+
+        // 3 Clean Keynote Feature Pills
+        const pills = [
+          { icon: '🌱', title: 'Regeneración Ambiental', sub: 'Ciclo de vida y huella ecológica', col: '#16A34A' },
+          { icon: '🤝', title: 'Bienestar y Ética Social', sub: 'Calidad de vida y comunidad', col: '#0284C7' },
+          { icon: '📈', title: 'Rentabilidad Sostenible', sub: 'Valor compartido a largo plazo', col: '#D97706' }
+        ];
+        pills.forEach((pl, idx) => {
+          const cp = easeAppleSpring(invLerp(0.25 + idx * 0.12, 1.1 + idx * 0.12, t));
+          const pw = 460, ph = 140;
+          const px = 220 + idx * 500;
+          const py = 575;
+          ctx.save();
+          ctx.translate(px + pw / 2, py + ph / 2);
+          ctx.scale(cp, cp);
+          ctx.translate(-(px + pw / 2), -(py + ph / 2));
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.shadowColor = 'rgba(15,23,42,0.08)';
+          ctx.shadowBlur = 26;
+          fillRoundRect(ctx, px, py, pw, ph, 28);
+          ctx.shadowBlur = 0;
+
+          ctx.font = '42px sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(pl.icon, px + 32, py + 84);
+
+          ctx.fillStyle = '#0F172A';
+          ctx.font = '800 24px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(pl.title, px + 96, py + 64);
+
+          ctx.fillStyle = pl.col;
+          ctx.font = '600 18px "Inter", sans-serif';
+          ctx.fillText(pl.sub, px + 96, py + 96);
+          ctx.restore();
+        });
+
+      } else if (sIdx === 1) {
+        // SCENE 2 (8-19s): EMPRESA TRADICIONAL VS EMPRESA ESR
+        const lt = t - 8;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 50px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Evolución del Modelo Empresarial en la Economía', cx, 130);
+
+        const p1 = easeAppleSpring(invLerp(0, 0.85, lt));
+        const lx = 150, cyCard = 190, cw = 760, ch = 650;
+        ctx.save();
+        ctx.translate(lx + cw / 2, cyCard + ch / 2);
+        ctx.scale(p1, p1);
+        ctx.translate(-(lx + cw / 2), -(cyCard + ch / 2));
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = 'rgba(15,23,42,0.07)';
+        ctx.shadowBlur = 26;
+        fillRoundRect(ctx, lx, cyCard, cw, ch, 32);
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#FEE2E2';
+        fillRoundRect(ctx, lx + 48, cyCard + 46, 320, 40, 20);
+        ctx.fillStyle = '#B91C1C';
+        ctx.textAlign = 'left';
+        ctx.font = '800 14px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('ENFOQUE LINEAL TRADICIONAL', lx + 68, cyCard + 71);
+
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 44px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Empresa Tradicional', lx + 48, cyCard + 142);
+
+        const tradList = [
+          '• Único objetivo: utilidad financiera a corto plazo',
+          '• Externaliza costos ambientales a la sociedad',
+          '• Extracción lineal intensiva de recursos finitos',
+          '• Impacto social y comunitario secundario'
+        ];
+        ctx.fillStyle = '#475569';
+        ctx.font = '500 24px "Inter", sans-serif';
+        tradList.forEach((item, i) => ctx.fillText(item, lx + 48, cyCard + 225 + i * 62));
+
+        ctx.fillStyle = '#FEF2F2';
+        fillRoundRect(ctx, lx + 48, cyCard + 505, cw - 96, 86, 20);
+        ctx.fillStyle = '#DC2626';
+        ctx.font = '800 21px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Resultado: Ganancia privada, pasivo ecológico público', lx + 74, cyCard + 556);
+        ctx.restore();
+
+        const p2 = easeAppleSpring(invLerp(0.18, 1.05, lt));
+        const rx = 1010;
+        ctx.save();
+        ctx.translate(rx + cw / 2, cyCard + ch / 2);
+        ctx.scale(p2, p2);
+        ctx.translate(-(rx + cw / 2), -(cyCard + ch / 2));
+
+        ctx.fillStyle = '#0F2922';
+        fillRoundRect(ctx, rx, cyCard, cw, ch, 32);
+
+        ctx.fillStyle = 'rgba(22, 163, 74, 0.25)';
+        fillRoundRect(ctx, rx + 48, cyCard + 46, 360, 40, 20);
+        ctx.fillStyle = '#4ADE80';
+        ctx.textAlign = 'left';
+        ctx.font = '800 14px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('MODELO SUSTENTABLE • TEMA 4.8.2', rx + 68, cyCard + 71);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '800 44px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Empresa ESR', rx + 48, cyCard + 142);
+
+        const esrList = [
+          '✓ Equilibra rentabilidad, ética y medio ambiente',
+          '✓ Internaliza costos y reduce su huella ecológica',
+          '✓ Impulsa energía limpia y economía circular',
+          '✓ Genera empleo digno y desarrollo regional'
+        ];
+        ctx.fillStyle = '#E2E8F0';
+        ctx.font = '500 24px "Inter", sans-serif';
+        esrList.forEach((item, i) => ctx.fillText(item, rx + 48, cyCard + 225 + i * 62));
+
+        ctx.fillStyle = '#16A34A';
+        fillRoundRect(ctx, rx + 48, cyCard + 505, cw - 96, 86, 20);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '800 21px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Resultado: Valor económico compartido + Planeta vivo', rx + 74, cyCard + 556);
+        ctx.restore();
+
+      } else {
+        // SCENE 3 (19-30s): TRIPLE CUENTA DE RESULTADOS (3P VENN DIAGRAM)
+        const lt = t - 19;
+        const converge = easeAppleSpring(invLerp(0, 1.2, lt));
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 48px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('La Triple Cuenta de Resultados (Triple Bottom Line)', cx, 125);
+        ctx.fillStyle = '#475569';
+        ctx.font = '500 24px "Inter", sans-serif';
+        ctx.fillText('El equilibrio de las 3P: Personas, Planeta y Rentabilidad Económica', cx, 168);
+
+        const vennY = 540;
+        const spread = lerp(285, 155, converge);
+        const circles = [
+          { x: cx, y: vennY - spread * 0.85, col: 'rgba(22, 163, 74, 0.24)', stroke: '#16A34A', title: 'PLANETA', sub: 'Capital Natural', desc: 'Energía limpia, agua y biodiversidad', tx: cx, ty: vennY - 250 },
+          { x: cx - spread, y: vennY + spread * 0.55, col: 'rgba(2, 132, 199, 0.24)', stroke: '#0284C7', title: 'PERSONAS', sub: 'Capital Social', desc: 'Calidad de vida, ética y comunidad', tx: cx - 310, ty: vennY + 145 },
+          { x: cx + spread, y: vennY + spread * 0.55, col: 'rgba(217, 119, 6, 0.24)', stroke: '#D97706', title: 'RENTABILIDAD', sub: 'Capital Económico', desc: 'Innovación, eficiencia y PIB sostenible', tx: cx + 310, ty: vennY + 145 }
+        ];
+
+        circles.forEach(c => {
+          ctx.save();
+          ctx.fillStyle = c.col;
+          ctx.strokeStyle = c.stroke;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(c.x, c.y, 230, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#0F172A';
+          ctx.font = '800 28px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(c.title, c.tx, c.ty);
+          ctx.fillStyle = c.stroke;
+          ctx.font = '700 20px "Inter", sans-serif';
+          ctx.fillText(c.sub, c.tx, c.ty + 30);
+          ctx.fillStyle = '#334155';
+          ctx.font = '500 17px "Inter", sans-serif';
+          ctx.fillText(c.desc, c.tx, c.ty + 56);
+          ctx.restore();
+        });
+
+        ctx.save();
+        ctx.translate(cx, vennY + 15);
+        ctx.scale(converge, converge);
+        ctx.fillStyle = '#0F172A';
+        ctx.beginPath();
+        ctx.arc(0, 0, 82, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#4ADE80';
+        ctx.font = '800 34px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('ESR', 0, 4);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '700 14px "Inter", sans-serif';
+        ctx.fillText('VALOR SOSTENIBLE', 0, 28);
+        ctx.restore();
+      }
     }
-    acc += block.scenes[i].dur;
-  }
 
-  const globalSceneKey = currentBlock * 10 + sIdx;
-  if (globalSceneKey !== lastSceneIndex) {
-    lastSceneIndex = globalSceneKey;
-    document.getElementById('tpTag').textContent = block.scenes[sIdx].tag;
-    document.getElementById('tpText').textContent = block.scenes[sIdx].sub;
-  }
+    function renderBlock1(t, sIdx, globalT) {
+      const cx = W / 2;
+      drawWarmKeynoteBackground(globalT);
 
-  drawBackground(now / 1000);
-  renderScene(currentBlock, sIdx, localT, sDur, now / 1000);
+      if (sIdx === 0) {
+        // SCENE 1 (0-10s): 4 PILLARS OF ESR (ISO 26000 & CEMEFI)
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 46px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Los 4 Pilares de una Empresa Socialmente Responsable', cx, 120);
+        ctx.fillStyle = '#475569';
+        ctx.font = '500 22px "Inter", sans-serif';
+        ctx.fillText('Estándar Internacional ISO 26000 y Centro Mexicano para la Filantropía (CEMEFI)', cx, 160);
 
-  const totalProgress = ((currentBlock * 30) + blockTime) / 150;
-  ctx.fillStyle = 'rgba(22, 163, 74, 0.85)';
-  ctx.fillRect(0, H - 5, W * totalProgress, 5);
+        const pillars = [
+          { x: 160, y: 200, num: '01', title: 'Ética y Gobernabilidad Empresarial', desc: 'Transparencia financiera, comercio justo, derechos humanos y cero corrupción.', col: '#0284C7', bg: '#E0F2FE' },
+          { x: 980, y: 200, num: '02', title: 'Calidad de Vida en la Empresa', desc: 'Salarios dignos, seguridad laboral, inclusión, capacitación y balance familiar.', col: '#16A34A', bg: '#DCFCE7' },
+          { x: 160, y: 540, num: '03', title: 'Vinculación con la Comunidad (4.8.3)', desc: 'Impulso a proveedores locales, infraestructura social y desarrollo regional.', col: '#D97706', bg: '#FEF3C7' },
+          { x: 980, y: 540, num: '04', title: 'Preservación del Medio Ambiente (4.8.1)', desc: 'Descarbonización, análisis de ciclo de vida, agua y economía circular.', col: '#059669', bg: '#D1FAE5' }
+        ];
 
-  requestAnimationFrame(animate);
-}
-requestAnimationFrame(animate);
+        pillars.forEach((pl, i) => {
+          const p = easeAppleSpring(invLerp(i * 0.12, 0.9 + i * 0.12, t));
+          const pw = 780, ph = 305;
+          ctx.save();
+          ctx.translate(pl.x + pw / 2, pl.y + ph / 2);
+          ctx.scale(p, p);
+          ctx.translate(-(pl.x + pw / 2), -(pl.y + ph / 2));
 
-function setBlock(idx) {
-  currentBlock = idx;
-  blockTime = 0;
-  updateBlockButtons();
-}
-function updateBlockButtons() {
-  for (let i = 0; i < 5; i++) {
-    document.getElementById('b' + i).classList.toggle('active', i === currentBlock);
-  }
-}
-function toggleSub() {
-  subOn = !subOn;
-  document.getElementById('teleprompter').classList.toggle('hidden', !subOn);
-  document.getElementById('btnSub').classList.toggle('active', subOn);
-}
-function hideUI() {
-  document.getElementById('topbar').classList.toggle('hidden');
-}
-canvas.addEventListener('dblclick', hideUI);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.shadowColor = 'rgba(15,23,42,0.07)';
+          ctx.shadowBlur = 26;
+          fillRoundRect(ctx, pl.x, pl.y, pw, ph, 30);
+          ctx.shadowBlur = 0;
 
-function openScript() {
-  const container = document.getElementById('scriptContainer');
-  container.innerHTML = BLOCKS.map(b => `
-    <div class="script-block">
-      <h4>${b.name}</h4>
-      ${b.scenes.map(s => `<p><strong>[${s.tag}]</strong> ${s.sub}</p>`).join('')}
-    </div>
-  `).join('');
-  document.getElementById('scriptModal').classList.add('open');
-}
-function closeScript() {
-  document.getElementById('scriptModal').classList.remove('open');
-}
-function copyScript() {
-  const plainText = BLOCKS.map(b => b.scenes.map(s => s.sub).join(' ')).join('\n\n');
-  navigator.clipboard.writeText(plainText);
-  alert('¡Guion limpio copiado!');
-}
-</script>
+          ctx.fillStyle = pl.bg;
+          fillRoundRect(ctx, pl.x + 42, pl.y + 36, 130, 46, 16);
+          ctx.fillStyle = pl.col;
+          ctx.textAlign = 'center';
+          ctx.font = '800 20px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(`PILAR ${pl.num}`, pl.x + 107, pl.y + 66);
+
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#0F172A';
+          ctx.font = '800 32px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(pl.title, pl.x + 42, pl.y + 140);
+
+          ctx.fillStyle = '#475569';
+          ctx.font = '500 22px "Inter", sans-serif';
+          drawWrappedText(ctx, pl.desc, pl.x + 42, pl.y + 190, pw - 84, 32);
+          ctx.restore();
+        });
+
+      } else if (sIdx === 1) {
+        // SCENE 2 (10-20s): EXTERNALIZACIÓN VS INTERNALIZACIÓN DE COSTOS (TEMA 4.5)
+        const lt = t - 10;
+        const prog = easeOutCubic(invLerp(0.1, 1.8, lt));
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 46px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Tema 4.5: Externalización vs. Internalización de Costos', cx, 125);
+        ctx.fillStyle = '#475569';
+        ctx.font = '500 23px "Inter", sans-serif';
+        ctx.fillText('¿Quién asume realmente el costo ecológico y social de producir un bien?', cx, 168);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = 'rgba(15,23,42,0.08)';
+        ctx.shadowBlur = 30;
+        fillRoundRect(ctx, 180, 225, 1560, 610, 34);
+        ctx.shadowBlur = 0;
+
+        // Top Bar: Externalización
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#DC2626';
+        ctx.font = '800 28px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('1. Empresa que EXTERNALIZA costos (Traslada el daño ambiental a la sociedad)', 250, 315);
+
+        ctx.fillStyle = '#F1F5F9';
+        fillRoundRect(ctx, 250, 345, 1420, 74, 20);
+        ctx.fillStyle = '#FCA5A5';
+        fillRoundRect(ctx, 250, 345, 1420 * prog, 74, 20);
+        ctx.fillStyle = '#7F1D1D';
+        ctx.font = '700 22px "Inter", sans-serif';
+        ctx.fillText('Precio privado bajo  +  Alto costo oculto en agua contaminada, emisiones y salud pública', 280, 390);
+
+        // Bottom Bar: Internalización ESR
+        ctx.fillStyle = '#16A34A';
+        ctx.font = '800 28px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('2. Empresa ESR que INTERNALIZA costos (Invierte en energía limpia y tratamiento)', 250, 545);
+
+        ctx.fillStyle = '#F1F5F9';
+        fillRoundRect(ctx, 250, 575, 1420, 74, 20);
+        ctx.fillStyle = '#86EFAC';
+        fillRoundRect(ctx, 250, 575, 1420 * prog, 74, 20);
+        ctx.fillStyle = '#14532D';
+        ctx.font = '700 22px "Inter", sans-serif';
+        ctx.fillText('La empresa absorbe el costo ambiental en su innovación  →  Cero deuda ecológica social', 280, 620);
+
+      } else {
+        // SCENE 3 (20-30s): GREENWASHING VS ESR AUDITADA
+        const lt = t - 20;
+        const prog = easeOutCubic(invLerp(0.1, 1.4, lt));
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 46px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Greenwashing vs. Sustentabilidad Real Auditada', cx, 125);
+        ctx.fillStyle = '#475569';
+        ctx.font = '500 23px "Inter", sans-serif';
+        ctx.fillText('La diferencia económica entre marketing superficial y transformación operativa', cx, 168);
+
+        // Left: Greenwashing
+        ctx.fillStyle = '#FFFFFF';
+        fillRoundRect(ctx, 160, 220, 760, 610, 32);
+        ctx.fillStyle = '#FEF3C7';
+        fillRoundRect(ctx, 210, 265, 320, 40, 20);
+        ctx.fillStyle = '#B45309';
+        ctx.textAlign = 'left';
+        ctx.font = '800 14px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('⚠️ SIMULACIÓN • GREENWASHING', 230, 290);
+
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 40px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Maquillaje Publicitario', 210, 355);
+
+        ctx.fillStyle = '#475569';
+        ctx.font = '600 23px "Inter", sans-serif';
+        ['• Etiquetas "Eco" sin certificación científica', '• Oculta emisiones de proveedores (Alcance 3)', '• Presupuesto enfocado en imagen, no en planta'].forEach((item, i) => {
+          ctx.fillText(item, 210, 445 + i * 64);
+        });
+
+        // Right: ESR Auditada
+        ctx.fillStyle = '#0F2922';
+        fillRoundRect(ctx, 1000, 220, 760, 610, 32);
+        ctx.fillStyle = 'rgba(74, 222, 128, 0.2)';
+        fillRoundRect(ctx, 1050, 265, 340, 40, 20);
+        ctx.fillStyle = '#4ADE80';
+        ctx.font = '800 14px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('✅ COMPROMISO VERIFICADO • ESR REAL', 1070, 290);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '800 40px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Métricas ESG y Reportes GRI', 1050, 355);
+
+        ctx.fillStyle = '#E2E8F0';
+        ctx.font = '600 23px "Inter", sans-serif';
+        ['✓ Metas validadas por Science Based Targets', '✓ Trazabilidad hídrica y de carbono pública', '✓ Auditoría externa anual e inversión limpia'].forEach((item, i) => {
+          ctx.fillText(item, 1050, 445 + i * 64);
+        });
+      }
+    }
+
+    function renderBlock2(t, sIdx, globalT) {
+      const cx = W / 2;
+      drawWarmKeynoteBackground(globalT);
+
+      if (sIdx === 0) {
+        // SCENE 1 (0-10s): ANÁLISIS DEL CICLO DE VIDA Y ECONOMÍA CIRCULAR (4.8.1)
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 46px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('4.8.1 Análisis del Ciclo de Vida y Economía Circular', cx, 125);
+        ctx.fillStyle = '#475569';
+        ctx.font = '500 23px "Inter", sans-serif';
+        ctx.fillText('Rediseño productivo para medir la huella ecológica y eliminar los residuos', cx, 168);
+
+        const steps = [
+          { title: '1. Ecodiseño', sub: 'Menor huella desde el origen', col: '#0284C7' },
+          { title: '2. Producción Limpia', sub: 'Energía renovable y agua circular', col: '#16A34A' },
+          { title: '3. Distribución Limpia', sub: 'Logística eléctrica y local', col: '#D97706' },
+          { title: '4. Regeneración', sub: 'Reciclaje y compostaje al suelo', col: '#059669' }
+        ];
+
+        steps.forEach((st, i) => {
+          const p = easeAppleSpring(invLerp(i * 0.12, 0.85 + i * 0.12, t));
+          const nx = 290 + i * 445;
+          const ny = 520;
+
+          ctx.save();
+          ctx.translate(nx, ny);
+          ctx.scale(p, p);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.shadowColor = 'rgba(15,23,42,0.08)';
+          ctx.shadowBlur = 24;
+          fillRoundRect(ctx, -195, -155, 390, 310, 28);
+          ctx.shadowBlur = 0;
+
+          ctx.fillStyle = st.col;
+          ctx.beginPath();
+          ctx.arc(0, -55, 44, 0, Math.PI * 2);
+          ctx.fill();
+          drawBotanicalLeaf(ctx, 0, -53, 0.72, i * 0.4, '#FFFFFF');
+
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#0F172A';
+          ctx.font = '800 26px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(st.title, 0, 38);
+          ctx.fillStyle = '#475569';
+          ctx.font = '500 18px "Inter", sans-serif';
+          ctx.fillText(st.sub, 0, 74);
+          ctx.restore();
+        });
+
+        ctx.strokeStyle = '#16A34A';
+        ctx.lineWidth = 5;
+        ctx.setLineDash([16, 12]);
+        ctx.lineDashOffset = -globalT * 70;
+        ctx.beginPath();
+        ctx.moveTo(1625, 690);
+        ctx.bezierCurveTo(1300, 860, 620, 860, 290, 690);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#16A34A';
+        fillRoundRect(ctx, cx - 280, 790, 560, 48, 24);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '800 18px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('↺ CICLO CERRADO: CERO DESPERDICIO', cx, 820);
+
+      } else if (sIdx === 1) {
+        // SCENE 2 (10-20s): COMPETITIVIDAD Y FINANZAS VERDES
+        const lt = t - 10;
+        const p = easeOutQuart(invLerp(0.1, 1.5, lt));
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 46px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Impacto Financiero y Competitivo en el Escenario Económico', cx, 125);
+        ctx.fillStyle = '#475569';
+        ctx.font = '500 23px "Inter", sans-serif';
+        ctx.fillText('Por qué la responsabilidad social es una inversión de alto retorno y no un gasto', cx, 168);
+
+        const metrics = [
+          { val: '-32%', title: 'Costos Operativos y Energía', desc: 'Ahorro directo por eficiencia energética, autogeneración renovable y menor merma.', col: '#16A34A' },
+          { val: '+45%', title: 'Bonos Verdes e Inversión ESG', desc: 'Acceso preferencial a fondos globales que exigen métricas ambientales auditadas.', col: '#0284C7' },
+          { val: '3.4x', title: 'Retención de Talento y Lealtad', desc: 'Mayor productividad laboral y preferencia de consumidores conscientes.', col: '#D97706' }
+        ];
+
+        metrics.forEach((m, i) => {
+          const cardX = 160 + i * 545;
+          const cardY = 235;
+          const cw = 510, ch = 550;
+          const cp = easeAppleSpring(invLerp(i * 0.12, 0.9 + i * 0.12, lt));
+
+          ctx.save();
+          ctx.translate(cardX + cw / 2, cardY + ch / 2);
+          ctx.scale(cp, cp);
+          ctx.translate(-(cardX + cw / 2), -(cardY + ch / 2));
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.shadowColor = 'rgba(15,23,42,0.08)';
+          ctx.shadowBlur = 28;
+          fillRoundRect(ctx, cardX, cardY, cw, ch, 32);
+          ctx.shadowBlur = 0;
+
+          ctx.fillStyle = m.col;
+          ctx.textAlign = 'left';
+          ctx.font = '800 94px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(m.val, cardX + 46, cardY + 150);
+
+          ctx.fillStyle = '#0F172A';
+          ctx.font = '800 29px "Plus Jakarta Sans", sans-serif';
+          drawWrappedText(ctx, m.title, cardX + 46, cardY + 240, cw - 92, 38);
+
+          ctx.fillStyle = '#475569';
+          ctx.font = '500 22px "Inter", sans-serif';
+          drawWrappedText(ctx, m.desc, cardX + 46, cardY + 340, cw - 92, 32);
+
+          ctx.fillStyle = '#F1F5F9';
+          fillRoundRect(ctx, cardX + 46, cardY + 475, cw - 92, 16, 8);
+          ctx.fillStyle = m.col;
+          fillRoundRect(ctx, cardX + 46, cardY + 475, (cw - 92) * p, 16, 8);
+          ctx.restore();
+        });
+
+      } else {
+        // SCENE 3 (20-30s): SERVICIOS AMBIENTALES Y DESARROLLO REGIONAL (4.7 & 4.8.3)
+        const lt = t - 20;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 46px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('4.7 y 4.8.3 Servicios Ambientales y Desarrollo Regional', cx, 125);
+        ctx.fillStyle = '#475569';
+        ctx.font = '500 23px "Inter", sans-serif';
+        ctx.fillText('Integración de cadenas locales y conservación del capital natural regional', cx, 168);
+
+        const chain = [
+          { title: 'Valoración de Servicios Ambientales (4.7)', sub: 'Pago por captura de carbono, recarga de acuíferos y polinización', col: '#16A34A' },
+          { title: 'Proveeduría y PyMEs Regionales (4.3)', sub: 'Cadenas cortas de suministro que retienen la riqueza en la comunidad', col: '#0284C7' },
+          { title: 'Empleos Verdes y Capacitación Técnica (4.8.3)', sub: 'Infraestructura limpia y transferencia de tecnología al campo', col: '#D97706' }
+        ];
+
+        chain.forEach((c, idx) => {
+          const p = easeAppleSpring(invLerp(idx * 0.12, 0.9 + idx * 0.12, lt));
+          const yPos = 245 + idx * 185;
+
+          ctx.save();
+          ctx.translate(cx, yPos + 70);
+          ctx.scale(p, p);
+          ctx.translate(-cx, -(yPos + 70));
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.shadowColor = 'rgba(15,23,42,0.07)';
+          ctx.shadowBlur = 22;
+          fillRoundRect(ctx, 240, yPos, 1440, 148, 28);
+          ctx.shadowBlur = 0;
+
+          ctx.fillStyle = c.col;
+          fillRoundRect(ctx, 275, yPos + 32, 84, 84, 22);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.textAlign = 'center';
+          ctx.font = '800 30px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(`0${idx + 1}`, 317, yPos + 84);
+
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#0F172A';
+          ctx.font = '800 32px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(c.title, 395, yPos + 64);
+
+          ctx.fillStyle = '#475569';
+          ctx.font = '500 23px "Inter", sans-serif';
+          ctx.fillText(c.sub, 395, yPos + 104);
+          ctx.restore();
+        });
+      }
+    }
+
+    function renderBlock3(t, sIdx, globalT) {
+      const cx = W / 2;
+
+      if (sIdx === 0) {
+        // SCENE 1 (0-10s): CASO PRÁCTICO GRUPO BIMBO - 100% ENERGÍA ELÉCTRICA RENOVABLE
+        const sky = ctx.createLinearGradient(0, 0, 0, H);
+        sky.addColorStop(0, '#E0F2FE');
+        sky.addColorStop(0.65, '#FAF8F5');
+        sky.addColorStop(1, '#DCFCE7');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = '#86EFAC';
+        ctx.beginPath();
+        ctx.moveTo(0, 725);
+        ctx.bezierCurveTo(520, 610, 1200, 760, W, 650);
+        ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+        ctx.fill();
+
+        drawWindTurbine(ctx, 340, 455, 1.15, globalT * 2.3);
+        drawWindTurbine(ctx, 1580, 455, 1.15, globalT * 2.1 + 1);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.94)';
+        ctx.shadowColor = 'rgba(15,23,42,0.1)';
+        ctx.shadowBlur = 35;
+        fillRoundRect(ctx, cx - 490, 180, 980, 480, 36);
+        ctx.shadowBlur = 0;
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#DCFCE7';
+        fillRoundRect(ctx, cx - 270, 225, 540, 42, 21);
+        ctx.fillStyle = '#15803D';
+        ctx.font = '800 14px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('CASO DE ESTUDIO APLICADO • GRUPO BIMBO', cx, 251);
+
+        ctx.fillStyle = '#16A34A';
+        ctx.font = '800 135px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('100%', cx, 405);
+
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 38px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Energía Eléctrica Renovable Global', cx, 475);
+
+        ctx.fillStyle = '#475569';
+        ctx.font = '500 22px "Inter", sans-serif';
+        ctx.fillText('Impulsada en México por el Parque Eólico Piedra Larga (Oaxaca) y techos solares', cx, 530);
+
+      } else if (sIdx === 1) {
+        // SCENE 2 (10-20s): +4,200 VEHÍCULOS ELÉCTRICOS MOLDEX
+        const lt = t - 10;
+        drawWarmKeynoteBackground(globalT);
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#15803D';
+        ctx.font = '800 15px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('INTERNALIZACIÓN DE COSTOS LOGÍSTICOS • INGENIERÍA MEXICANA MOLDEX', cx, 130);
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 54px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('+4,200 Vehículos Eléctricos de Reparto', cx, 195);
+        ctx.fillStyle = '#475569';
+        ctx.font = '500 24px "Inter", sans-serif';
+        ctx.fillText('La flotilla de distribución cero emisiones más grande de América Latina', cx, 242);
+
+        ctx.fillStyle = '#CBD5E1';
+        ctx.fillRect(0, 720, W, 120);
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([40, 35]);
+        ctx.lineDashOffset = -lt * 360;
+        ctx.beginPath(); ctx.moveTo(0, 780); ctx.lineTo(W, 780); ctx.stroke();
+        ctx.setLineDash([]);
+
+        const vanX = lerp(420, 1220, easeInOutCubic(lt / 10.0));
+        drawElectricVan(ctx, vanX, 680, 1.45, lt * 9);
+
+        for (let l = 0; l < 6; l++) {
+          const age = (lt * 2.4 + l * 0.4) % 2.0;
+          const lx = vanX - 185 - age * 130;
+          const ly = 670 - Math.sin(age * 3 + l) * 30 - age * 18;
+          ctx.save();
+          ctx.globalAlpha = clamp(1 - age / 2.0, 0, 1);
+          drawBotanicalLeaf(ctx, lx, ly, 0.48, age * 2, '#16A34A');
+          ctx.restore();
+        }
+
+      } else {
+        // SCENE 3 (20-30s): AGRICULTURA REGENERATIVA Y EMPAQUES
+        const lt = t - 20;
+        drawWarmKeynoteBackground(globalT);
+        const p = easeAppleSpring(invLerp(0, 1.0, lt));
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 48px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Ciclo de Vida Aplicado: Del Campo al Empaque', cx, 135);
+
+        const cards = [
+          { x: 200, val: '+500 mil ha', title: 'Agricultura Regenerativa', sub: 'Cultivos de trigo y maíz que restauran suelos, capturan carbono y optimizan el agua.', col: '#D97706', icon: 'wheat' },
+          { x: 1000, val: '94% — 100%', title: 'Empaques Reciclables y Bio', sub: 'Transición hacia envolturas 100% reciclables, biodegradables o compostables rumbo a Net Zero 2050.', col: '#16A34A', icon: 'leaf' }
+        ];
+
+        cards.forEach(c => {
+          ctx.save();
+          ctx.translate(c.x + 360, 520);
+          ctx.scale(p, p);
+          ctx.translate(-(c.x + 360), -520);
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.shadowColor = 'rgba(15,23,42,0.08)';
+          ctx.shadowBlur = 30;
+          fillRoundRect(ctx, c.x, 230, 720, 560, 34);
+          ctx.shadowBlur = 0;
+
+          if (c.icon === 'wheat') drawWheatSpike(ctx, c.x + 95, 345, 1.35, 0.15, c.col);
+          else drawBotanicalLeaf(ctx, c.x + 95, 345, 1.35, 0.15, c.col);
+
+          ctx.textAlign = 'left';
+          ctx.fillStyle = c.col;
+          ctx.font = '800 80px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(c.val, c.x + 155, 375);
+
+          ctx.fillStyle = '#0F172A';
+          ctx.font = '800 36px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(c.title, c.x + 60, 495);
+
+          ctx.fillStyle = '#475569';
+          ctx.font = '500 24px "Inter", sans-serif';
+          drawWrappedText(ctx, c.sub, c.x + 60, 555, 600, 36);
+          ctx.restore();
+        });
+      }
+    }
+
+    function renderBlock4(t, sIdx, globalT) {
+      const cx = W / 2;
+      drawWarmKeynoteBackground(globalT);
+
+      if (sIdx === 0) {
+        // SCENE 1 (0-13s): SÍNTESIS FINAL DEL ESCENARIO ECONÓMICO
+        const p = easeAppleSpring(invLerp(0, 1.0, t));
+
+        ctx.save();
+        ctx.translate(0, (1 - p) * 28);
+        ctx.textAlign = 'center';
+
+        ctx.fillStyle = '#DCFCE7';
+        fillRoundRect(ctx, cx - 280, 160, 560, 46, 23);
+        ctx.fillStyle = '#15803D';
+        ctx.font = '800 16px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('CONCLUSIÓN • UNIDAD 4 ESCENARIO ECONÓMICO', cx, 189);
+
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 66px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('“La empresa del futuro no es la que más', cx, 330);
+        ctx.fillText('extrae de la naturaleza,', cx, 415);
+
+        ctx.fillStyle = '#16A34A';
+        ctx.font = 'italic 86px "Instrument Serif", Georgia, serif';
+        ctx.fillText('sino la que más valor devuelve a su comunidad.”', cx, 525);
+        ctx.restore();
+
+        const summaryPills = [
+          '✓ Internalización ética de costos (4.5)',
+          '✓ Ciclo de vida y menor huella (4.8.1)',
+          '✓ Desarrollo regional sustentable (4.8.3)'
+        ];
+        summaryPills.forEach((txt, i) => {
+          const px = 220 + i * 505;
+          ctx.fillStyle = '#FFFFFF';
+          ctx.shadowColor = 'rgba(15,23,42,0.07)';
+          ctx.shadowBlur = 20;
+          fillRoundRect(ctx, px, 640, 470, 88, 24);
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = '#0F172A';
+          ctx.textAlign = 'center';
+          ctx.font = '700 21px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(txt, px + 235, 692);
+        });
+
+      } else {
+        // SCENE 2 (13-30s): GRAND CLOSING CREDITS FOR EQUIPO 4 ONLY AT THE END
+        const lt = t - 13;
+
+        for (let r = 1; r <= 3; r++) {
+          const rad = 180 * r + ((lt * 35) % 160);
+          ctx.strokeStyle = `rgba(22, 163, 74, ${0.14 - r * 0.03})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(cx, 250, rad, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        const p = easeAppleSpring(invLerp(0, 1.0, lt));
+        ctx.save();
+        ctx.translate(0, (1 - p) * 25);
+        ctx.textAlign = 'center';
+
+        ctx.fillStyle = '#0F172A';
+        fillRoundRect(ctx, cx - 230, 110, 460, 46, 23);
+        ctx.fillStyle = '#4ADE80';
+        ctx.font = '800 16px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('CRÉDITOS DE PRODUCCIÓN • EQUIPO 4', cx, 139);
+
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 72px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('¡Gracias por su atención!', cx, 250);
+
+        ctx.fillStyle = '#16A34A';
+        ctx.font = 'italic 48px "Instrument Serif", Georgia, serif';
+        ctx.fillText('4. Escenario Económico • 4.8.2 Empresas Socialmente Responsables', cx, 315);
+        ctx.restore();
+
+        TEAM_MEMBERS.forEach((m, idx) => {
+          const cp = easeAppleSpring(invLerp(0.15 + idx * 0.12, 1.05 + idx * 0.12, lt));
+          const cw = 390, ch = 355;
+          const sx = 150 + idx * 412;
+          const sy = 395;
+
+          ctx.save();
+          ctx.translate(sx + cw / 2, sy + ch / 2);
+          ctx.scale(cp, cp);
+          ctx.translate(-(sx + cw / 2), -(sy + ch / 2));
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.shadowColor = 'rgba(15, 23, 42, 0.1)';
+          ctx.shadowBlur = 32;
+          fillRoundRect(ctx, sx, sy, cw, ch, 32);
+          ctx.shadowBlur = 0;
+
+          ctx.fillStyle = m.color;
+          fillRoundRect(ctx, sx + 36, sy + 36, 84, 84, 24);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.textAlign = 'center';
+          ctx.font = '800 30px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(m.initials, sx + 78, sy + 89);
+
+          ctx.textAlign = 'left';
+          ctx.fillStyle = m.color;
+          ctx.font = '800 14px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(`EQUIPO 4 • INTEGRANTE 0${idx + 1}`, sx + 36, sy + 162);
+
+          ctx.fillStyle = '#0F172A';
+          ctx.font = '800 31px "Plus Jakarta Sans", sans-serif';
+          ctx.fillText(m.name, sx + 36, sy + 204);
+
+          ctx.fillStyle = '#475569';
+          ctx.font = '500 20px "Inter", sans-serif';
+          drawWrappedText(ctx, m.role, sx + 36, sy + 250, cw - 72, 28);
+          ctx.restore();
+        });
+
+        ctx.fillStyle = '#0F172A';
+        fillRoundRect(ctx, cx - 680, 805, 1360, 62, 31);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        ctx.font = '700 21px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Equipo 4:  Luciano Bustillos  •  David García  •  Luis Payán  •  Armando Loya', cx, 844);
+      }
+    }
+
+    function renderAppleKeynotePill(t, block) {
+      const totalSec = currentBlockIndex * 30 + t;
+      const mins = Math.floor(totalSec / 60);
+      const secs = String(Math.floor(totalSec % 60)).padStart(2, '0');
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      fillRoundRect(ctx, 48, 34, 480, 42, 21);
+      ctx.fillStyle = '#0F172A';
+      ctx.font = '700 14px "Plus Jakarta Sans", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`🌿 4.8.2 ESR  •  ${block.shortTitle}`, 68, 60);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      fillRoundRect(ctx, W - 220, 34, 172, 42, 21);
+      ctx.fillStyle = '#15803D';
+      ctx.textAlign = 'center';
+      ctx.fillText(`● ${mins}:${secs} / 2:30`, W - 134, 60);
+      ctx.restore();
+    }
+
+    /*************************************************************************
+     * 5. WEB AUDIO API SYNTHESIZER: AMBIENT KEYNOTE MUSIC + SCENE SFX
+     *************************************************************************/
+    let audioCtx = null;
+    let musicEnabled = true;
+    let sfxEnabled = true;
+    let bgmTimer = null;
+
+    function ensureAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+          startAmbientKeynoteMusic();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+    window.addEventListener('pointerdown', ensureAudioContext, { passive: true });
+
+    function startAmbientKeynoteMusic() {
+      if (bgmTimer) clearInterval(bgmTimer);
+      const chords = [
+        [261.63, 329.63, 392.00, 493.88], // Cmaj7
+        [293.66, 349.23, 440.00, 523.25], // Dm7
+        [220.00, 329.63, 392.00, 493.88], // Am9
+        [196.00, 293.66, 392.00, 493.88]  // G6
+      ];
+      let step = 0;
+      const playPad = () => {
+        if (!musicEnabled || !audioCtx || audioCtx.state !== 'running') return;
+        try {
+          const now = audioCtx.currentTime;
+          const notes = chords[step % chords.length];
+          notes.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = idx === 0 ? 'triangle' : 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.linearRampToValueAtTime(0.02, now + 0.8);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.6);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 3.7);
+          });
+          step++;
+        } catch (e) {}
+      };
+      playPad();
+      bgmTimer = setInterval(playPad, 3500);
+    }
+
+    function playSceneTransitionSfx(sceneIdx) {
+      if (!sfxEnabled || !audioCtx || audioCtx.state !== 'running') return;
+      try {
+        const now = audioCtx.currentTime;
+        const baseFreq = 240 + sceneIdx * 55;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.45, now + 0.26);
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.06, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.36);
+      } catch (e) {}
+    }
+
+    function toggleMusic() {
+      ensureAudioContext();
+      musicEnabled = !musicEnabled;
+      const btn = document.getElementById('musicBtn');
+      btn.textContent = musicEnabled ? '🎵 Música: ON' : '🔇 Música: OFF';
+      btn.className = musicEnabled
+        ? 'px-2.5 py-1.5 rounded-xl text-xs font-bold border border-emerald-600/30 bg-emerald-500/15 text-emerald-900 hover:bg-emerald-500/25 transition'
+        : 'px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-900/10 bg-white/70 text-slate-600 transition';
+    }
+
+    function toggleSfx() {
+      ensureAudioContext();
+      sfxEnabled = !sfxEnabled;
+      const btn = document.getElementById('sfxBtn');
+      btn.textContent = sfxEnabled ? '🔊 SFX: ON' : '🔇 SFX: OFF';
+      btn.className = sfxEnabled
+        ? 'px-2.5 py-1.5 rounded-xl text-xs font-bold border border-sky-600/30 bg-sky-500/15 text-sky-900 hover:bg-sky-500/25 transition'
+        : 'px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-900/10 bg-white/70 text-slate-600 transition';
+    }
+
+    /*************************************************************************
+     * 6. MAIN 60 FPS LOOP & UI CONTROLLERS
+     *************************************************************************/
+    function getSceneForBlock(block, t) {
+      let acc = 0;
+      for (let i = 0; i < block.scenes.length; i++) {
+        const d = block.scenes[i].dur;
+        if (t < acc + d || i === block.scenes.length - 1) {
+          return { index: i, scene: block.scenes[i] };
+        }
+        acc += d;
+      }
+      return { index: 0, scene: block.scenes[0] };
+    }
+
+    function resizeCanvas() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (canvas.width !== W * dpr || canvas.height !== H * dpr) {
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+      }
+    }
+
+    function updateBlockButtonsUI() {
+      for (let i = 0; i < 5; i++) {
+        const btn = document.getElementById('blockBtn' + i);
+        if (i === currentBlockIndex) {
+          btn.className = 'px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-white text-slate-900 shadow-sm';
+        } else {
+          btn.className = 'px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all text-slate-600 hover:text-slate-900';
+        }
+      }
+      const block = KEYNOTE_BLOCKS[currentBlockIndex];
+      for (let s = 0; s < 3; s++) {
+        const lbl = document.getElementById('sceneLabel' + s);
+        if (lbl && block.sceneLabels[s]) lbl.textContent = block.sceneLabels[s];
+      }
+    }
+
+    function updateUIOverlays(sceneIdx, sceneObj, block) {
+      const totalElapsed = currentBlockIndex * 30 + currentTime;
+      const totMin = Math.floor(totalElapsed / 60);
+      const totSec = String(Math.floor(totalElapsed % 60)).padStart(2, '0');
+
+      document.getElementById('currentTimeReadout').textContent = `${totMin}:${totSec}`;
+      document.getElementById('totalTimeReadout').textContent = ` / 2:30 (B${currentBlockIndex + 1})`;
+      document.getElementById('timelineSlider').value = currentTime;
+
+      const sceneKey = currentBlockIndex * 10 + sceneIdx;
+      if (sceneKey !== lastTriggeredSceneKey) {
+        lastTriggeredSceneKey = sceneKey;
+        playSceneTransitionSfx(sceneIdx);
+
+        for (let i = 0; i < 3; i++) {
+          const btn = document.getElementById('sceneBtn' + i);
+          if (btn) {
+            btn.className = (i === sceneIdx)
+              ? 'px-3 py-1.5 rounded-xl border border-emerald-600/40 bg-emerald-500/15 text-left transition flex items-center justify-between shadow-sm'
+              : 'px-3 py-1.5 rounded-xl border border-slate-900/10 bg-white/60 hover:bg-white text-left transition flex items-center justify-between';
+          }
+        }
+
+        document.getElementById('prompterSpeakerLabel').textContent =
+          `🎙️ NARRADOR VOZ IA — ESCENA ${sceneIdx + 1} (${sceneObj.tag})`;
+        document.getElementById('prompterBlockName').textContent = block.shortTitle.toUpperCase();
+        document.getElementById('prompterText').textContent = `"${sceneObj.sub}"`;
+      }
+    }
+
+    function renderFrame(now) {
+      const dt = Math.min(0.1, (now - lastFrameTime) / 1000);
+      lastFrameTime = now;
+
+      if (isRecordingVideo) {
+        recordElapsed += dt;
+        const pct = Math.min(100, Math.round((recordElapsed / recordTargetDuration) * 100));
+        document.getElementById('exportProgressText').textContent = `🔴 Grabando fotogramas limpios a 60 FPS... ${pct}%`;
+        if (recordElapsed >= recordTargetDuration) {
+          stopExportDirectly();
+        }
+      }
+
+      if (isPlaying) {
+        currentTime += dt;
+        if (currentTime >= BLOCK_DURATION) {
+          currentTime = 0;
+          lastTriggeredSceneKey = -1;
+          if (continuousMode || (isRecordingVideo && recordFullTimeline)) {
+            currentBlockIndex = (currentBlockIndex + 1) % KEYNOTE_BLOCKS.length;
+            updateBlockButtonsUI();
+          }
+        }
+      }
+
+      resizeCanvas();
+      const dpr = canvas.width / W;
+      ctx.save();
+      ctx.scale(dpr, dpr);
+
+      const block = KEYNOTE_BLOCKS[currentBlockIndex];
+      const { index: sIdx, scene: sceneObj } = getSceneForBlock(block, currentTime);
+      const globalT = now / 1000;
+
+      if (currentBlockIndex === 0) renderBlock0(currentTime, sIdx, globalT);
+      else if (currentBlockIndex === 1) renderBlock1(currentTime, sIdx, globalT);
+      else if (currentBlockIndex === 2) renderBlock2(currentTime, sIdx, globalT);
+      else if (currentBlockIndex === 3) renderBlock3(currentTime, sIdx, globalT);
+      else renderBlock4(currentTime, sIdx, globalT);
+
+      renderAppleKeynotePill(currentTime, block);
+      ctx.restore();
+
+      updateUIOverlays(sIdx, sceneObj, block);
+      requestAnimationFrame(renderFrame);
+    }
+
+    function togglePlay() {
+      ensureAudioContext();
+      isPlaying = !isPlaying;
+      document.getElementById('pauseIcon').classList.toggle('hidden', !isPlaying);
+      document.getElementById('playIcon').classList.toggle('hidden', isPlaying);
+    }
+
+    function restartCurrentBlock() {
+      ensureAudioContext();
+      currentTime = 0;
+      lastTriggeredSceneKey = -1;
+      if (!isPlaying) togglePlay();
+    }
+
+    function scrubTimeline(val) {
+      currentTime = parseFloat(val);
+    }
+
+    function jumpToScene(sceneIdx) {
+      ensureAudioContext();
+      const block = KEYNOTE_BLOCKS[currentBlockIndex];
+      let acc = 0;
+      for (let i = 0; i < sceneIdx && i < block.scenes.length; i++) {
+        acc += block.scenes[i].dur;
+      }
+      currentTime = acc + 0.05;
+      lastTriggeredSceneKey = -1;
+    }
+
+    function selectBlock(blockIdx) {
+      ensureAudioContext();
+      currentBlockIndex = blockIdx;
+      currentTime = 0;
+      lastTriggeredSceneKey = -1;
+      updateBlockButtonsUI();
+    }
+
+    function toggleContinuousMode() {
+      continuousMode = !continuousMode;
+      const btn = document.getElementById('continuousBtn');
+      btn.textContent = continuousMode ? '🔁 Corrido 2:30: ON' : '🔁 Corrido 2:30: OFF';
+      btn.className = continuousMode
+        ? 'px-2.5 py-1.5 rounded-xl text-xs font-bold border border-emerald-600/30 bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm'
+        : 'px-2.5 py-1.5 rounded-xl text-xs font-bold border border-slate-900/15 bg-white text-slate-700 hover:bg-slate-100 transition';
+    }
+
+    function toggleTeleprompter() {
+      showTeleprompter = !showTeleprompter;
+      const overlay = document.getElementById('teleprompterOverlay');
+      const btn = document.getElementById('prompterBtn');
+      overlay.style.opacity = showTeleprompter ? '1' : '0';
+      btn.textContent = showTeleprompter ? '💬 Subtítulo: ON' : '💬 Subtítulo: OFF';
+    }
+
+    function enterCleanRecordMode() {
+      document.body.classList.toggle('recording-mode');
+      if (document.body.classList.contains('recording-mode')) {
+        const toast = document.getElementById('cleanModeToast');
+        toast.style.opacity = '1';
+        setTimeout(() => { toast.style.opacity = '0'; }, 3400);
+      }
+    }
+
+    function toggleScriptModal() {
+      const modal = document.getElementById('scriptModal');
+      modal.classList.toggle('hidden');
+      modal.classList.toggle('flex');
+    }
+
+    function populateScriptModal() {
+      const container = document.getElementById('modalScriptContent');
+      container.innerHTML = KEYNOTE_BLOCKS.map((b, bIdx) => `
+        <div class="p-4 rounded-2xl bg-white border border-slate-900/10 space-y-2 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="font-extrabold text-emerald-800 text-sm uppercase tracking-wide">${b.shortTitle}</h3>
+            <button onclick="selectBlock(${bIdx}); toggleScriptModal();" class="px-3 py-1 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">
+              Ver Bloque ➔
+            </button>
+          </div>
+          <div class="space-y-1.5 pt-1">
+            ${b.scenes.map((s) => `
+              <div class="flex gap-3 text-xs sm:text-sm">
+                <span class="font-bold text-amber-700 shrink-0">[${s.tag}]</span>
+                <p class="text-slate-700">${s.sub}</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function copyPlainScript() {
+      const plainText = KEYNOTE_BLOCKS.map(b => b.scenes.map(s => s.sub).join(' ')).join('\n\n');
+      const tempArea = document.createElement('textarea');
+      tempArea.value = plainText;
+      document.body.appendChild(tempArea);
+      tempArea.select();
+      try {
+        document.execCommand('copy');
+        const btn = document.getElementById('copyScriptBtn');
+        btn.textContent = '✅ ¡Guion copiado al portapapeles!';
+        setTimeout(() => {
+          btn.textContent = '📋 Copiar texto limpio para IA';
+        }, 2600);
+      } catch (e) {}
+      document.body.removeChild(tempArea);
+    }
+
+    // iPad Double-Tap & Desktop Double-Click Support to toggle Clean Recording Mode
+    let lastTouchEnd = 0;
+    canvas.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd < 320) {
+        enterCleanRecordMode();
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
+
+    canvas.addEventListener('dblclick', () => {
+      enterCleanRecordMode();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === 'h' || e.key === 'H') {
+        enterCleanRecordMode();
+      } else if (e.key === 'Escape' && document.body.classList.contains('recording-mode')) {
+        document.body.classList.remove('recording-mode');
+      } else if (e.key === 'r' || e.key === 'R') {
+        restartCurrentBlock();
+      }
+    });
+
+    window.onload = function () {
+      updateBlockButtonsUI();
+      populateScriptModal();
+      requestAnimationFrame(renderFrame);
+    };
+  </script>
 </body>
 </html>
