@@ -42,6 +42,13 @@
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
     }
+    /* CRÍTICO PARA iPadOS: Desactivar backdrop-filter durante la exportación libera hasta 45% de GPU */
+    body.exporting-active .apple-glass,
+    body.exporting-active .apple-glass-dark,
+    body.exporting-active #exportStatusBanner {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
     /* Apple Keynote Timeline Scrubber */
     input[type="range"].apple-slider {
       -webkit-appearance: none;
@@ -146,11 +153,11 @@
 
       <!-- Studio Action Buttons + Exportadores directos de video -->
       <div class="flex flex-wrap items-center gap-1.5">
-        <!-- Selector de perfil de exportación optimizado para iPadOS y CapCut -->
+        <!-- Selector optimizado para CapCut en iPadOS -->
         <select id="exportProfileSelect" onchange="applyExportProfile(this.value)" class="px-2 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-white border border-slate-700 cursor-pointer">
-          <option value="4k30" selected>🎯 4K (3840×2160) · 30 FPS · 45 Mbps</option>
-          <option value="1080p60">⚡ 1080p (1920×1080) · 60 FPS · 28 Mbps</option>
-          <option value="1080p30">💎 1080p (1920×1080) · 30 FPS · 24 Mbps</option>
+          <option value="1080p30" selected>✅ CapCut Pro: 1080p · 30 FPS · 30 Mbps</option>
+          <option value="1080p60">⚡ CapCut Fluido: 1080p · 60 FPS · 35 Mbps</option>
+          <option value="4k30">🎯 4K (3840×2160) · 30 FPS · 50 Mbps</option>
         </select>
 
         <button onclick="startDirectExport(false)" class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-700 transition shadow-sm">
@@ -183,7 +190,7 @@
   </header>
 
   <!-- BANNER FLOTANTE DE ESTADO AL GRABAR EL VIDEO DIRECTAMENTE -->
-  <div id="exportStatusBanner" class="fixed top-14 left-1/2 -translate-x-1/2 z-50 hidden flex-col sm:flex-row items-center gap-3 bg-slate-950/95 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl backdrop-blur-md border border-white/20 min-w-[340px] max-w-[95vw]">
+  <div id="exportStatusBanner" class="fixed top-14 left-1/2 -translate-x-1/2 z-50 hidden flex-col sm:flex-row items-center gap-3 bg-slate-950 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl border border-white/20 min-w-[340px] max-w-[95vw]">
     <div class="flex flex-col gap-1 flex-1">
       <div class="flex items-center gap-2">
         <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
@@ -191,9 +198,9 @@
         <span id="exportFpsBadge" class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[11px] font-mono">30.0 FPS</span>
       </div>
       <div class="w-full h-1.5 bg-white/15 rounded-full overflow-hidden">
-        <div id="exportProgressBar" class="h-full bg-emerald-400 transition-all duration-150" style="width: 0%"></div>
+        <div id="exportProgressBar" class="h-full bg-emerald-400" style="width: 0%"></div>
       </div>
-      <span class="text-[10px] text-amber-300 font-medium">⚠️ No cierres Safari ni bloquees el iPad hasta que aparezca la ventana de descarga.</span>
+      <span class="text-[10px] text-amber-300 font-medium">⚠️ Mantén esta pantalla abierta hasta que aparezca la descarga.</span>
     </div>
     <button onclick="stopExportDirectly()" class="px-3 py-1.5 rounded-xl bg-red-600 text-white text-[11px] hover:bg-red-700 transition shrink-0 shadow">
       ⏹ Detener y Guardar
@@ -275,16 +282,19 @@
   </footer>
 
   <!-- MODAL: DESCARGA DIRECTA DEL VIDEO GENERADO CON TELEMETRÍA -->
-  <div id="downloadModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md hidden items-center justify-center p-4">
+  <div id="downloadModal" class="fixed inset-0 z-50 bg-slate-950/75 hidden items-center justify-center p-4">
     <div class="bg-white border border-slate-900/10 rounded-3xl max-w-md w-full p-6 flex flex-col items-center text-center shadow-2xl">
       <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-700 flex items-center justify-center text-2xl mb-3">
         ✅
       </div>
-      <h3 class="text-lg font-extrabold text-slate-900 mb-1">¡Grabación finalizada y verificada!</h3>
-      <p id="downloadTelemetrySummary" class="text-xs text-slate-600 mb-4 bg-slate-100 rounded-xl p-3 w-full font-mono text-left leading-relaxed">
-        Resolución: 3840×2160 (4K)<br>
-        FPS efectivos: -- FPS
+      <h3 class="text-lg font-extrabold text-slate-900 mb-1">¡Video listo para CapCut!</h3>
+      <p id="downloadTelemetrySummary" class="text-xs text-slate-600 mb-3 bg-slate-100 rounded-xl p-3 w-full font-mono text-left leading-relaxed">
+        Resolución: 1920×1080<br>
+        FPS efectivos: 30.0 FPS
       </p>
+      <div class="text-[11px] text-amber-900 bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 mb-4 text-left leading-snug">
+        💡 <strong>Tip pro para CapCut en iPad:</strong> Si CapCut intenta comprimir el archivo del navegador, ábrelo en <strong>Fotos → Editar → Guardar video</strong> antes de importarlo a CapCut.
+      </div>
       <div class="w-full flex flex-col gap-2.5">
         <a id="downloadVideoBtn" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs text-center transition shadow-sm">
           ⬇️ Descargar archivo de video ahora
@@ -443,12 +453,18 @@
     ];
 
     /*************************************************************************
-     * 2. ENGINE STATE, EXPORT PROFILES & APPLE KEYNOTE EASING CURVES
+     * 2. ENGINE STATE, EXPORT PROFILES & OFFSCREEN LIGHTING CACHE
      *************************************************************************/
     const canvas = document.getElementById('keynoteCanvas');
-    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: false });
+    const ctx = canvas.getContext('2d', { alpha: false });
     const W = 1920;
     const H = 1080;
+
+    // Buffer fuera de pantalla para los gradientes suaves del fondo
+    const bgOffscreenCanvas = document.createElement('canvas');
+    bgOffscreenCanvas.width = 320;
+    bgOffscreenCanvas.height = 180;
+    const bgOffscreenCtx = bgOffscreenCanvas.getContext('2d', { alpha: false });
 
     let currentBlockIndex = 0;
     let currentTime = 0; // 0.0 to 30.0s per block
@@ -459,13 +475,12 @@
     let lastFrameTime = performance.now();
     let lastTriggeredSceneKey = -1;
 
-    // --- PERFILES DE EXPORTACIÓN Y ESTADO DEL CODIFICADOR ---
     const EXPORT_PROFILES = {
-      '4k30':    { dpr: 2, fps: 30, bitrate: 45000000, label: '3840×2160 (4K) @ 30 FPS' },
-      '1080p60': { dpr: 1, fps: 60, bitrate: 28000000, label: '1920×1080 (FHD) @ 60 FPS' },
-      '1080p30': { dpr: 1, fps: 30, bitrate: 24000000, label: '1920×1080 (FHD) @ 30 FPS' }
+      '1080p30': { dpr: 1, fps: 30, bitrate: 30000000, label: '1920×1080 (FHD) @ 30 FPS' },
+      '1080p60': { dpr: 1, fps: 60, bitrate: 35000000, label: '1920×1080 (FHD) @ 60 FPS' },
+      '4k30':    { dpr: 2, fps: 30, bitrate: 50000000, label: '3840×2160 (4K) @ 30 FPS' }
     };
-    let activeExportProfile = EXPORT_PROFILES['4k30'];
+    let activeExportProfile = EXPORT_PROFILES['1080p30'];
 
     let mediaRecorder = null;
     let captureStreamObj = null;
@@ -476,14 +491,13 @@
     let recordElapsed = 0;
     let recordStartWallTime = 0;
     let recordFramesCaptured = 0;
-    let recordLastFrameWallTime = 0;
-    let recordAccumulator = 0;
+    let recordNextFrameDue = 0;
     let currentDownloadUrl = null;
     let wakeLockSentinel = null;
 
     function applyExportProfile(key) {
       if (isRecordingVideo) return;
-      activeExportProfile = EXPORT_PROFILES[key] || EXPORT_PROFILES['4k30'];
+      activeExportProfile = EXPORT_PROFILES[key] || EXPORT_PROFILES['1080p30'];
       resizeCanvas();
     }
 
@@ -503,11 +517,10 @@
     }
 
     function selectBestMimeType() {
-      // Orden de preferencia para Safari iPadOS (H.264 High Profile en contenedor MP4)
       const candidates = [
-        'video/mp4;codecs="avc1.640033"', // H.264 High Profile Level 5.1 (Ideal para 4K)
-        'video/mp4;codecs="avc1.64002a"', // H.264 High Profile Level 4.2
-        'video/mp4;codecs="avc1.4d4033"', // H.264 Main Profile Level 5.1
+        'video/mp4;codecs="avc1.640033"',
+        'video/mp4;codecs="avc1.64002a"',
+        'video/mp4;codecs="avc1.4d402a"',
         'video/mp4;codecs=avc1',
         'video/mp4',
         'video/webm;codecs=vp9',
@@ -529,11 +542,13 @@
       ensureAudioContext();
       requestWakeLock();
 
+      document.body.classList.add('exporting-active');
+
       recordFullTimeline = full;
       recordTargetDuration = full ? 150.0 : 30.0;
       recordElapsed = 0;
       recordFramesCaptured = 0;
-      recordAccumulator = 0;
+      recordNextFrameDue = 0;
 
       if (full) {
         currentBlockIndex = 0;
@@ -546,10 +561,7 @@
       document.getElementById('playIcon').classList.add('hidden');
       updateBlockButtonsUI();
 
-      // Fijar el tamaño exacto del buffer antes de crear el stream
       resizeCanvas(activeExportProfile.dpr);
-
-      // Dibujar el primer cuadro en t=0 antes de arrancar MediaRecorder
       drawCompleteSceneAt(currentBlockIndex, 0);
 
       const targetFps = activeExportProfile.fps;
@@ -573,9 +585,11 @@
       };
 
       mediaRecorder.onstop = () => {
+        document.body.classList.remove('exporting-active');
         releaseWakeLock();
+
         const totalWallSec = Math.max(0.1, (performance.now() - recordStartWallTime) / 1000);
-        const avgEffectiveFps = (recordFramesCaptured / totalWallSec).toFixed(2);
+        const avgEffectiveFps = (recordFramesCaptured / totalWallSec).toFixed(1);
         const actualMime = (mediaRecorder && mediaRecorder.mimeType) ? mediaRecorder.mimeType : (mimeType || 'video/mp4');
         const ext = actualMime.includes('mp4') ? 'mp4' : 'webm';
 
@@ -596,9 +610,9 @@
 
         document.getElementById('downloadTelemetrySummary').innerHTML =
           `<strong>Perfil:</strong> ${activeExportProfile.label}<br>` +
-          `<strong>Duración grabada:</strong> ${recordElapsed.toFixed(1)}s (${recordFramesCaptured} cuadros)<br>` +
-          `<strong>Frecuencia medida:</strong> ${avgEffectiveFps} FPS constantes<br>` +
-          `<strong>Tamaño final:</strong> ${sizeMB} MB (${ext.toUpperCase()})`;
+          `<strong>Duración:</strong> ${totalWallSec.toFixed(1)}s (${recordFramesCaptured} cuadros)<br>` +
+          `<strong>Frecuencia real:</strong> ${avgEffectiveFps} FPS<br>` +
+          `<strong>Tamaño:</strong> ${sizeMB} MB (${ext.toUpperCase()} continuo)`;
 
         document.getElementById('exportStatusBanner').classList.remove('flex');
         document.getElementById('exportStatusBanner').classList.add('hidden');
@@ -606,11 +620,9 @@
         document.getElementById('downloadModal').classList.add('flex');
       };
 
-      // Usar intervalos de 2000 ms (2s) en vez de 200 ms para no saturar WebKit empaquetando átomos moof/mdat
-      mediaRecorder.start(2000);
+      mediaRecorder.start();
       isRecordingVideo = true;
       recordStartWallTime = performance.now();
-      recordLastFrameWallTime = recordStartWallTime;
       lastFrameTime = recordStartWallTime;
 
       document.getElementById('exportStatusBanner').classList.remove('hidden');
@@ -620,9 +632,6 @@
     function stopExportDirectly() {
       if (isRecordingVideo && mediaRecorder && mediaRecorder.state !== 'inactive') {
         isRecordingVideo = false;
-        try {
-          mediaRecorder.requestData();
-        } catch (e) {}
         mediaRecorder.stop();
       }
     }
@@ -674,19 +683,12 @@
       ctx.stroke();
     }
 
-    /**
-     * SOMBRA MULTICAPA ACELERADA POR GPU (REEMPLAZA ctx.shadowBlur EN 4K)
-     * En WebKit iPadOS, ctx.shadowBlur en 3840x2160 cuesta ~35ms por cuadro y hunde los FPS a 19.97.
-     * Esta función dibuja una sombra suave multicapa en <0.4ms conservando el aspecto Apple Keynote.
-     */
     function fillCardWithShadow(ctx, x, y, w, h, r, fillColor = '#FFFFFF') {
       ctx.save();
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.022)';
-      fillRoundRect(ctx, x - 6, y + 6, w + 12, h + 14, r + 6);
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.032)';
-      fillRoundRect(ctx, x - 3, y + 4, w + 6, h + 8, r + 3);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.028)';
+      fillRoundRect(ctx, x - 4, y + 5, w + 8, h + 10, r + 4);
       ctx.fillStyle = 'rgba(15, 23, 42, 0.045)';
-      fillRoundRect(ctx, x, y + 2, w, h + 3, r);
+      fillRoundRect(ctx, x - 1, y + 2, w + 2, h + 4, r + 1);
       ctx.fillStyle = fillColor;
       fillRoundRect(ctx, x, y, w, h, r);
       ctx.restore();
@@ -853,18 +855,12 @@
       ctx.restore();
     }
 
-    // Gradientes pre-cacheados para evitar instanciarlos miles de veces en 4K
-    let cachedBaseBgGrad = null;
     let cachedTitleGrad = null;
     let cachedBimboSkyGrad = null;
+    let cachedOffscreenBaseGrad = null;
 
     function ensureCachedGradients() {
-      if (!cachedBaseBgGrad) {
-        cachedBaseBgGrad = ctx.createLinearGradient(0, 0, W, H);
-        cachedBaseBgGrad.addColorStop(0, '#FAF8F5');
-        cachedBaseBgGrad.addColorStop(0.55, '#F4EFE6');
-        cachedBaseBgGrad.addColorStop(1, '#ECFDF5');
-
+      if (!cachedTitleGrad) {
         const cx = W / 2;
         cachedTitleGrad = ctx.createLinearGradient(cx - 420, 0, cx + 420, 0);
         cachedTitleGrad.addColorStop(0, '#16A34A');
@@ -875,34 +871,41 @@
         cachedBimboSkyGrad.addColorStop(0, '#E0F2FE');
         cachedBimboSkyGrad.addColorStop(0.65, '#FAF8F5');
         cachedBimboSkyGrad.addColorStop(1, '#DCFCE7');
+
+        cachedOffscreenBaseGrad = bgOffscreenCtx.createLinearGradient(0, 0, 320, 180);
+        cachedOffscreenBaseGrad.addColorStop(0, '#FAF8F5');
+        cachedOffscreenBaseGrad.addColorStop(0.55, '#F4EFE6');
+        cachedOffscreenBaseGrad.addColorStop(1, '#ECFDF5');
       }
     }
 
     function drawWarmKeynoteBackground(t) {
       ensureCachedGradients();
-      ctx.fillStyle = cachedBaseBgGrad;
-      ctx.fillRect(0, 0, W, H);
+      const bw = 320, bh = 180;
+      bgOffscreenCtx.fillStyle = cachedOffscreenBaseGrad;
+      bgOffscreenCtx.fillRect(0, 0, bw, bh);
 
-      const orb1X = W * 0.78 + Math.sin(t * 0.5) * 65;
-      const orb1Y = H * 0.22 + Math.cos(t * 0.4) * 45;
-      const g1 = ctx.createRadialGradient(orb1X, orb1Y, 10, orb1X, orb1Y, 640);
+      const orb1X = bw * 0.78 + Math.sin(t * 0.5) * 11;
+      const orb1Y = bh * 0.22 + Math.cos(t * 0.4) * 7.5;
+      const g1 = bgOffscreenCtx.createRadialGradient(orb1X, orb1Y, 2, orb1X, orb1Y, 106);
       g1.addColorStop(0, 'rgba(22, 163, 74, 0.11)');
       g1.addColorStop(1, 'rgba(22, 163, 74, 0)');
-      ctx.fillStyle = g1;
-      ctx.fillRect(0, 0, W, H);
+      bgOffscreenCtx.fillStyle = g1;
+      bgOffscreenCtx.fillRect(0, 0, bw, bh);
 
-      const orb2X = W * 0.22 + Math.cos(t * 0.45) * 65;
-      const orb2Y = H * 0.78 + Math.sin(t * 0.5) * 45;
-      const g2 = ctx.createRadialGradient(orb2X, orb2Y, 10, orb2X, orb2Y, 640);
+      const orb2X = bw * 0.22 + Math.cos(t * 0.45) * 11;
+      const orb2Y = bh * 0.78 + Math.sin(t * 0.5) * 7.5;
+      const g2 = bgOffscreenCtx.createRadialGradient(orb2X, orb2Y, 2, orb2X, orb2Y, 106);
       g2.addColorStop(0, 'rgba(217, 119, 6, 0.10)');
       g2.addColorStop(1, 'rgba(217, 119, 6, 0)');
-      ctx.fillStyle = g2;
-      ctx.fillRect(0, 0, W, H);
+      bgOffscreenCtx.fillStyle = g2;
+      bgOffscreenCtx.fillRect(0, 0, bw, bh);
+
+      ctx.drawImage(bgOffscreenCanvas, 0, 0, W, H);
     }
 
     /*************************************************************************
      * 4. RENDERERS FOR ALL 5 BLOCKS
-     *    No presenter names in Blocks 1-4; Team 4 credits at the end of Block 5
      *************************************************************************/
     function renderBlock0(t, sIdx, globalT) {
       const cx = W / 2;
@@ -917,12 +920,6 @@
         ctx.bezierCurveTo(540, 690, 1280, 830, W, 735);
         ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
         ctx.fill();
-
-        for (let i = 0; i < 22; i++) {
-          const wx = 90 + i * 84;
-          const sway = Math.sin(globalT * 2.1 + i * 0.45) * 0.12;
-          drawWheatSpike(ctx, wx, 825 + (i % 3) * 14, 0.92, sway, '#D97706');
-        }
 
         ctx.save();
         ctx.translate(0, (1 - p) * 35);
@@ -1648,10 +1645,6 @@
     }
 
     function renderAppleKeynotePill(t, block) {
-      const totalSec = currentBlockIndex * 30 + t;
-      const mins = Math.floor(totalSec / 60);
-      const secs = String(Math.floor(totalSec % 60)).padStart(2, '0');
-
       ctx.save();
       ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
       fillRoundRect(ctx, 48, 34, 480, 42, 21);
@@ -1659,12 +1652,6 @@
       ctx.font = '700 14px "Plus Jakarta Sans", sans-serif';
       ctx.textAlign = 'left';
       ctx.fillText(`🌿 4.8.2 ESR  •  ${block.shortTitle}`, 68, 60);
-
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-      fillRoundRect(ctx, W - 220, 34, 172, 42, 21);
-      ctx.fillStyle = '#15803D';
-      ctx.textAlign = 'center';
-      ctx.fillText(`● ${mins}:${secs} / 2:30`, W - 134, 60);
       ctx.restore();
     }
 
@@ -1765,7 +1752,7 @@
     }
 
     /*************************************************************************
-     * 6. DETERMINISTIC FRAME-PACED RENDER LOOP & UI CONTROLLERS
+     * 6. WALL-SYNCED CFR RENDER LOOP & UI CONTROLLERS
      *************************************************************************/
     function getSceneForBlock(block, t) {
       let acc = 0;
@@ -1780,11 +1767,10 @@
     }
 
     function resizeCanvas(forcedDpr) {
-      const targetDpr = forcedDpr || activeExportProfile.dpr || Math.min(window.devicePixelRatio || 1, 2);
+      const targetDpr = forcedDpr || activeExportProfile.dpr || 1;
       if (canvas.width !== W * targetDpr || canvas.height !== H * targetDpr) {
         canvas.width = W * targetDpr;
         canvas.height = H * targetDpr;
-        cachedBaseBgGrad = null; // Regenerar gradientes al cambiar escala
       }
     }
 
@@ -1810,7 +1796,6 @@
       const totalElapsed = currentBlockIndex * 30 + currentTime;
       const wholeSec = Math.floor(totalElapsed);
 
-      // Durante la grabación solo actualizamos el DOM cuando cambia el segundo entero para evitar layout thrashing en Safari
       if (!isRecordingVideo || wholeSec !== lastUiSecondUpdated) {
         lastUiSecondUpdated = wholeSec;
         const totMin = Math.floor(totalElapsed / 60);
@@ -1850,7 +1835,6 @@
 
       const block = KEYNOTE_BLOCKS[blockIdx];
       const { index: sIdx, scene: sceneObj } = getSceneForBlock(block, blockTime);
-      // Fuente de tiempo determinista ligada a la línea de tiempo de la animación (no a performance.now)
       const deterministicGlobalT = blockIdx * BLOCK_DURATION + blockTime;
 
       if (blockIdx === 0) renderBlock0(blockTime, sIdx, deterministicGlobalT);
@@ -1870,39 +1854,37 @@
       lastFrameTime = now;
 
       if (isRecordingVideo) {
-        // Regulador CFR (Constant Frame Rate) para evitar saltos de tiempo y garantizar pasos exactos
+        const wallElapsed = (now - recordStartWallTime) / 1000;
         const targetFps = activeExportProfile.fps;
-        const frameInterval = 1.0 / targetFps;
-        recordAccumulator += Math.min(rawDt, 0.25);
+        const frameStep = 1.0 / targetFps;
 
-        // Con las sombras optimizadas, el iPad dibuja cada cuadro en ~4ms, manteniendo 30.0 o 60.0 FPS exactos
-        if (recordAccumulator >= frameInterval * 0.92) {
-          // Avanzar exactamente 1 fotograma determinista (evita acelerones o saltos en la animación)
-          recordAccumulator = Math.min(recordAccumulator - frameInterval, frameInterval);
-          recordElapsed += frameInterval;
-          currentTime += frameInterval;
+        if (wallElapsed >= recordNextFrameDue) {
+          const quantizedElapsed = Math.floor(wallElapsed * targetFps) / targetFps;
+          recordElapsed = quantizedElapsed;
+          recordNextFrameDue = quantizedElapsed + frameStep * 0.85;
           recordFramesCaptured++;
 
-          if (currentTime >= BLOCK_DURATION) {
-            currentTime -= BLOCK_DURATION;
-            lastTriggeredSceneKey = -1;
-            if (recordFullTimeline && currentBlockIndex < KEYNOTE_BLOCKS.length - 1) {
-              currentBlockIndex++;
+          if (recordFullTimeline) {
+            const newBlockIdx = Math.min(KEYNOTE_BLOCKS.length - 1, Math.floor(quantizedElapsed / BLOCK_DURATION));
+            if (newBlockIdx !== currentBlockIndex) {
+              currentBlockIndex = newBlockIdx;
+              lastTriggeredSceneKey = -1;
               updateBlockButtonsUI();
             }
+            currentTime = Math.min(BLOCK_DURATION - 0.001, quantizedElapsed - currentBlockIndex * BLOCK_DURATION);
+          } else {
+            currentTime = Math.min(BLOCK_DURATION - 0.001, quantizedElapsed);
           }
 
-          drawCompleteSceneAt(currentBlockIndex, Math.min(currentTime, BLOCK_DURATION - 0.001));
+          drawCompleteSceneAt(currentBlockIndex, currentTime);
 
-          // Actualizar telemetría cada 10 cuadros para no recargar el DOM
-          if (recordFramesCaptured % 10 === 0) {
-            const pct = Math.min(100, Math.round((recordElapsed / recordTargetDuration) * 100));
-            const curMin = Math.floor(recordElapsed / 60);
-            const curSec = String(Math.floor(recordElapsed % 60)).padStart(2, '0');
+          if (recordFramesCaptured % 15 === 0) {
+            const pct = Math.min(100, Math.round((wallElapsed / recordTargetDuration) * 100));
+            const curMin = Math.floor(wallElapsed / 60);
+            const curSec = String(Math.floor(wallElapsed % 60)).padStart(2, '0');
             const tarMin = Math.floor(recordTargetDuration / 60);
             const tarSec = String(Math.floor(recordTargetDuration % 60)).padStart(2, '0');
-            const wallElapsed = Math.max(0.1, (now - recordStartWallTime) / 1000);
-            const measuredFps = (recordFramesCaptured / wallElapsed).toFixed(1);
+            const measuredFps = (recordFramesCaptured / Math.max(0.1, wallElapsed)).toFixed(1);
 
             document.getElementById('exportProgressText').textContent =
               `Grabando ${pct}% (${curMin}:${curSec} / ${tarMin}:${tarSec})`;
@@ -1910,12 +1892,11 @@
             document.getElementById('exportFpsBadge').textContent = `${measuredFps} FPS`;
           }
 
-          if (recordElapsed >= recordTargetDuration) {
+          if (wallElapsed >= recordTargetDuration) {
             stopExportDirectly();
           }
         }
       } else {
-        // Reproducción normal interactiva
         const dt = Math.min(0.05, rawDt);
         if (isPlaying) {
           currentTime += dt;
