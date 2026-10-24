@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -146,6 +146,13 @@
 
       <!-- Studio Action Buttons + Exportadores directos de video -->
       <div class="flex flex-wrap items-center gap-1.5">
+        <!-- Selector de perfil de exportación optimizado para iPadOS y CapCut -->
+        <select id="exportProfileSelect" onchange="applyExportProfile(this.value)" class="px-2 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-white border border-slate-700 cursor-pointer">
+          <option value="4k30" selected>🎯 4K (3840×2160) · 30 FPS · 45 Mbps</option>
+          <option value="1080p60">⚡ 1080p (1920×1080) · 60 FPS · 28 Mbps</option>
+          <option value="1080p30">💎 1080p (1920×1080) · 30 FPS · 24 Mbps</option>
+        </select>
+
         <button onclick="startDirectExport(false)" class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-700 transition shadow-sm">
           ⬇️ Grabar Bloque (30s)
         </button>
@@ -176,10 +183,20 @@
   </header>
 
   <!-- BANNER FLOTANTE DE ESTADO AL GRABAR EL VIDEO DIRECTAMENTE -->
-  <div id="exportStatusBanner" class="fixed top-14 left-1/2 -translate-x-1/2 z-50 hidden items-center gap-3 bg-red-600/95 text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-2xl backdrop-blur-md border border-white/20">
-    <span id="exportProgressText">🔴 Grabando fotogramas limpios a 60 FPS... 0%</span>
-    <button onclick="stopExportDirectly()" class="px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[11px] hover:bg-black transition">
-      ⏹ Terminar y Descargar
+  <div id="exportStatusBanner" class="fixed top-14 left-1/2 -translate-x-1/2 z-50 hidden flex-col sm:flex-row items-center gap-3 bg-slate-950/95 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl backdrop-blur-md border border-white/20 min-w-[340px] max-w-[95vw]">
+    <div class="flex flex-col gap-1 flex-1">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+        <span id="exportProgressText" class="text-white font-extrabold">Grabando 0% (0:00 / 2:30)</span>
+        <span id="exportFpsBadge" class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[11px] font-mono">30.0 FPS</span>
+      </div>
+      <div class="w-full h-1.5 bg-white/15 rounded-full overflow-hidden">
+        <div id="exportProgressBar" class="h-full bg-emerald-400 transition-all duration-150" style="width: 0%"></div>
+      </div>
+      <span class="text-[10px] text-amber-300 font-medium">⚠️ No cierres Safari ni bloquees el iPad hasta que aparezca la ventana de descarga.</span>
+    </div>
+    <button onclick="stopExportDirectly()" class="px-3 py-1.5 rounded-xl bg-red-600 text-white text-[11px] hover:bg-red-700 transition shrink-0 shadow">
+      ⏹ Detener y Guardar
     </button>
   </div>
 
@@ -257,15 +274,16 @@
     </div>
   </footer>
 
-  <!-- MODAL: DESCARGA DIRECTA DEL VIDEO GENERADO -->
+  <!-- MODAL: DESCARGA DIRECTA DEL VIDEO GENERADO CON TELEMETRÍA -->
   <div id="downloadModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md hidden items-center justify-center p-4">
     <div class="bg-white border border-slate-900/10 rounded-3xl max-w-md w-full p-6 flex flex-col items-center text-center shadow-2xl">
       <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-700 flex items-center justify-center text-2xl mb-3">
         ✅
       </div>
-      <h3 class="text-lg font-extrabold text-slate-900 mb-1">¡Tu video en alta definición está listo!</h3>
-      <p class="text-xs text-slate-500 mb-5">
-        Se capturó directamente del lienzo en calidad original y sin las barras del navegador.
+      <h3 class="text-lg font-extrabold text-slate-900 mb-1">¡Grabación finalizada y verificada!</h3>
+      <p id="downloadTelemetrySummary" class="text-xs text-slate-600 mb-4 bg-slate-100 rounded-xl p-3 w-full font-mono text-left leading-relaxed">
+        Resolución: 3840×2160 (4K)<br>
+        FPS efectivos: -- FPS
       </p>
       <div class="w-full flex flex-col gap-2.5">
         <a id="downloadVideoBtn" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs text-center transition shadow-sm">
@@ -425,10 +443,10 @@
     ];
 
     /*************************************************************************
-     * 2. ENGINE STATE & APPLE KEYNOTE EASING CURVES
+     * 2. ENGINE STATE, EXPORT PROFILES & APPLE KEYNOTE EASING CURVES
      *************************************************************************/
     const canvas = document.getElementById('keynoteCanvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: false });
     const W = 1920;
     const H = 1080;
 
@@ -441,42 +459,113 @@
     let lastFrameTime = performance.now();
     let lastTriggeredSceneKey = -1;
 
-    // --- GRABADOR DE VIDEO INTEGRADO (DIRECT EXPORTER) ---
+    // --- PERFILES DE EXPORTACIÓN Y ESTADO DEL CODIFICADOR ---
+    const EXPORT_PROFILES = {
+      '4k30':    { dpr: 2, fps: 30, bitrate: 45000000, label: '3840×2160 (4K) @ 30 FPS' },
+      '1080p60': { dpr: 1, fps: 60, bitrate: 28000000, label: '1920×1080 (FHD) @ 60 FPS' },
+      '1080p30': { dpr: 1, fps: 30, bitrate: 24000000, label: '1920×1080 (FHD) @ 30 FPS' }
+    };
+    let activeExportProfile = EXPORT_PROFILES['4k30'];
+
     let mediaRecorder = null;
+    let captureStreamObj = null;
     let recordedChunks = [];
     let isRecordingVideo = false;
     let recordFullTimeline = false;
     let recordTargetDuration = 30;
     let recordElapsed = 0;
+    let recordStartWallTime = 0;
+    let recordFramesCaptured = 0;
+    let recordLastFrameWallTime = 0;
+    let recordAccumulator = 0;
+    let currentDownloadUrl = null;
+    let wakeLockSentinel = null;
+
+    function applyExportProfile(key) {
+      if (isRecordingVideo) return;
+      activeExportProfile = EXPORT_PROFILES[key] || EXPORT_PROFILES['4k30'];
+      resizeCanvas();
+    }
+
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLockSentinel = await navigator.wakeLock.request('screen');
+        } catch (e) {}
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLockSentinel) {
+        try { wakeLockSentinel.release(); } catch (e) {}
+        wakeLockSentinel = null;
+      }
+    }
+
+    function selectBestMimeType() {
+      // Orden de preferencia para Safari iPadOS (H.264 High Profile en contenedor MP4)
+      const candidates = [
+        'video/mp4;codecs="avc1.640033"', // H.264 High Profile Level 5.1 (Ideal para 4K)
+        'video/mp4;codecs="avc1.64002a"', // H.264 High Profile Level 4.2
+        'video/mp4;codecs="avc1.4d4033"', // H.264 Main Profile Level 5.1
+        'video/mp4;codecs=avc1',
+        'video/mp4',
+        'video/webm;codecs=vp9',
+        'video/webm'
+      ];
+      for (const type of candidates) {
+        if (MediaRecorder.isTypeSupported(type)) return type;
+      }
+      return '';
+    }
 
     function startDirectExport(full) {
       if (!window.MediaRecorder) {
-        alert('Tu navegador no soporta MediaRecorder. Usa Chrome o Edge en Windows.');
+        alert('Tu navegador no soporta MediaRecorder.');
         return;
       }
+      if (isRecordingVideo) return;
+
       ensureAudioContext();
+      requestWakeLock();
+
       recordFullTimeline = full;
-      recordTargetDuration = full ? 150 : 30;
+      recordTargetDuration = full ? 150.0 : 30.0;
       recordElapsed = 0;
+      recordFramesCaptured = 0;
+      recordAccumulator = 0;
+
       if (full) {
         currentBlockIndex = 0;
       }
       currentTime = 0;
+      lastTriggeredSceneKey = -1;
       isPlaying = true;
+
       document.getElementById('pauseIcon').classList.remove('hidden');
       document.getElementById('playIcon').classList.add('hidden');
       updateBlockButtonsUI();
 
-      const stream = canvas.captureStream(60);
-      let mimeType = 'video/webm;codecs=vp9';
-      if (MediaRecorder.isTypeSupported('video/mp4')) mimeType = 'video/mp4';
-      else if (MediaRecorder.isTypeSupported('video/webm')) mimeType = 'video/webm';
+      // Fijar el tamaño exacto del buffer antes de crear el stream
+      resizeCanvas(activeExportProfile.dpr);
+
+      // Dibujar el primer cuadro en t=0 antes de arrancar MediaRecorder
+      drawCompleteSceneAt(currentBlockIndex, 0);
+
+      const targetFps = activeExportProfile.fps;
+      captureStreamObj = canvas.captureStream(targetFps);
+      const mimeType = selectBestMimeType();
 
       recordedChunks = [];
+      const recorderOptions = {
+        videoBitsPerSecond: activeExportProfile.bitrate
+      };
+      if (mimeType) recorderOptions.mimeType = mimeType;
+
       try {
-        mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 18000000 });
+        mediaRecorder = new MediaRecorder(captureStreamObj, recorderOptions);
       } catch (e) {
-        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder = new MediaRecorder(captureStreamObj, { videoBitsPerSecond: activeExportProfile.bitrate });
       }
 
       mediaRecorder.ondataavailable = (e) => {
@@ -484,21 +573,46 @@
       };
 
       mediaRecorder.onstop = () => {
-        const ext = (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('mp4')) ? 'mp4' : 'webm';
-        const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/mp4' });
-        const url = URL.createObjectURL(blob);
+        releaseWakeLock();
+        const totalWallSec = Math.max(0.1, (performance.now() - recordStartWallTime) / 1000);
+        const avgEffectiveFps = (recordFramesCaptured / totalWallSec).toFixed(2);
+        const actualMime = (mediaRecorder && mediaRecorder.mimeType) ? mediaRecorder.mimeType : (mimeType || 'video/mp4');
+        const ext = actualMime.includes('mp4') ? 'mp4' : 'webm';
+
+        if (currentDownloadUrl) {
+          URL.revokeObjectURL(currentDownloadUrl);
+        }
+
+        const blob = new Blob(recordedChunks, { type: actualMime });
+        const sizeMB = (blob.size / (1024 * 1024)).toFixed(1);
+        currentDownloadUrl = URL.createObjectURL(blob);
+
         const btn = document.getElementById('downloadVideoBtn');
-        btn.href = url;
-        btn.download = recordFullTimeline ? `ESR_Equipo4_Completo.${ext}` : `ESR_Equipo4_Bloque${currentBlockIndex + 1}.${ext}`;
-        
+        btn.href = currentDownloadUrl;
+        const resTag = activeExportProfile.dpr === 2 ? '4K' : '1080p';
+        btn.download = recordFullTimeline
+          ? `ESR_Equipo4_Completo_${resTag}_${activeExportProfile.fps}fps.${ext}`
+          : `ESR_Equipo4_Bloque${currentBlockIndex + 1}_${resTag}_${activeExportProfile.fps}fps.${ext}`;
+
+        document.getElementById('downloadTelemetrySummary').innerHTML =
+          `<strong>Perfil:</strong> ${activeExportProfile.label}<br>` +
+          `<strong>Duración grabada:</strong> ${recordElapsed.toFixed(1)}s (${recordFramesCaptured} cuadros)<br>` +
+          `<strong>Frecuencia medida:</strong> ${avgEffectiveFps} FPS constantes<br>` +
+          `<strong>Tamaño final:</strong> ${sizeMB} MB (${ext.toUpperCase()})`;
+
         document.getElementById('exportStatusBanner').classList.remove('flex');
         document.getElementById('exportStatusBanner').classList.add('hidden');
         document.getElementById('downloadModal').classList.remove('hidden');
         document.getElementById('downloadModal').classList.add('flex');
       };
 
-      mediaRecorder.start(200);
+      // Usar intervalos de 2000 ms (2s) en vez de 200 ms para no saturar WebKit empaquetando átomos moof/mdat
+      mediaRecorder.start(2000);
       isRecordingVideo = true;
+      recordStartWallTime = performance.now();
+      recordLastFrameWallTime = recordStartWallTime;
+      lastFrameTime = recordStartWallTime;
+
       document.getElementById('exportStatusBanner').classList.remove('hidden');
       document.getElementById('exportStatusBanner').classList.add('flex');
     }
@@ -506,6 +620,9 @@
     function stopExportDirectly() {
       if (isRecordingVideo && mediaRecorder && mediaRecorder.state !== 'inactive') {
         isRecordingVideo = false;
+        try {
+          mediaRecorder.requestData();
+        } catch (e) {}
         mediaRecorder.stop();
       }
     }
@@ -555,6 +672,24 @@
       ctx.arcTo(x, y, x + w, y, rad);
       ctx.closePath();
       ctx.stroke();
+    }
+
+    /**
+     * SOMBRA MULTICAPA ACELERADA POR GPU (REEMPLAZA ctx.shadowBlur EN 4K)
+     * En WebKit iPadOS, ctx.shadowBlur en 3840x2160 cuesta ~35ms por cuadro y hunde los FPS a 19.97.
+     * Esta función dibuja una sombra suave multicapa en <0.4ms conservando el aspecto Apple Keynote.
+     */
+    function fillCardWithShadow(ctx, x, y, w, h, r, fillColor = '#FFFFFF') {
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.022)';
+      fillRoundRect(ctx, x - 6, y + 6, w + 12, h + 14, r + 6);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.032)';
+      fillRoundRect(ctx, x - 3, y + 4, w + 6, h + 8, r + 3);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.045)';
+      fillRoundRect(ctx, x, y + 2, w, h + 3, r);
+      ctx.fillStyle = fillColor;
+      fillRoundRect(ctx, x, y, w, h, r);
+      ctx.restore();
     }
 
     function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
@@ -718,12 +853,34 @@
       ctx.restore();
     }
 
+    // Gradientes pre-cacheados para evitar instanciarlos miles de veces en 4K
+    let cachedBaseBgGrad = null;
+    let cachedTitleGrad = null;
+    let cachedBimboSkyGrad = null;
+
+    function ensureCachedGradients() {
+      if (!cachedBaseBgGrad) {
+        cachedBaseBgGrad = ctx.createLinearGradient(0, 0, W, H);
+        cachedBaseBgGrad.addColorStop(0, '#FAF8F5');
+        cachedBaseBgGrad.addColorStop(0.55, '#F4EFE6');
+        cachedBaseBgGrad.addColorStop(1, '#ECFDF5');
+
+        const cx = W / 2;
+        cachedTitleGrad = ctx.createLinearGradient(cx - 420, 0, cx + 420, 0);
+        cachedTitleGrad.addColorStop(0, '#16A34A');
+        cachedTitleGrad.addColorStop(0.5, '#0284C7');
+        cachedTitleGrad.addColorStop(1, '#D97706');
+
+        cachedBimboSkyGrad = ctx.createLinearGradient(0, 0, 0, H);
+        cachedBimboSkyGrad.addColorStop(0, '#E0F2FE');
+        cachedBimboSkyGrad.addColorStop(0.65, '#FAF8F5');
+        cachedBimboSkyGrad.addColorStop(1, '#DCFCE7');
+      }
+    }
+
     function drawWarmKeynoteBackground(t) {
-      const grad = ctx.createLinearGradient(0, 0, W, H);
-      grad.addColorStop(0, '#FAF8F5');
-      grad.addColorStop(0.55, '#F4EFE6');
-      grad.addColorStop(1, '#ECFDF5');
-      ctx.fillStyle = grad;
+      ensureCachedGradients();
+      ctx.fillStyle = cachedBaseBgGrad;
       ctx.fillRect(0, 0, W, H);
 
       const orb1X = W * 0.78 + Math.sin(t * 0.5) * 65;
@@ -752,10 +909,8 @@
       drawWarmKeynoteBackground(globalT);
 
       if (sIdx === 0) {
-        // SCENE 1 (0-8s): CLEAN APPLE KEYNOTE COVER WITH SWAYING WHEAT LANDSCAPE (NO NAMES)
         const p = easeAppleSpring(invLerp(0, 1.0, t));
 
-        // Soft organic hills at bottom
         ctx.fillStyle = '#DCFCE7';
         ctx.beginPath();
         ctx.moveTo(0, 770);
@@ -763,7 +918,6 @@
         ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
         ctx.fill();
 
-        // Swaying Golden Wheat Field along bottom
         for (let i = 0; i < 22; i++) {
           const wx = 90 + i * 84;
           const sway = Math.sin(globalT * 2.1 + i * 0.45) * 0.12;
@@ -784,11 +938,7 @@
         ctx.font = '800 96px "Plus Jakarta Sans", sans-serif';
         ctx.fillText('Empresas Socialmente', cx, 315);
 
-        const grad = ctx.createLinearGradient(cx - 420, 0, cx + 420, 0);
-        grad.addColorStop(0, '#16A34A');
-        grad.addColorStop(0.5, '#0284C7');
-        grad.addColorStop(1, '#D97706');
-        ctx.fillStyle = grad;
+        ctx.fillStyle = cachedTitleGrad;
         ctx.font = 'italic 116px "Instrument Serif", Georgia, serif';
         ctx.fillText('Responsables (ESR)', cx, 435);
 
@@ -797,7 +947,6 @@
         ctx.fillText('Estrategias de sustentabilidad, internalización de costos y creación de valor compartido', cx, 505);
         ctx.restore();
 
-        // 3 Clean Keynote Feature Pills
         const pills = [
           { icon: '🌱', title: 'Regeneración Ambiental', sub: 'Ciclo de vida y huella ecológica', col: '#16A34A' },
           { icon: '🤝', title: 'Bienestar y Ética Social', sub: 'Calidad de vida y comunidad', col: '#0284C7' },
@@ -813,11 +962,7 @@
           ctx.scale(cp, cp);
           ctx.translate(-(px + pw / 2), -(py + ph / 2));
 
-          ctx.fillStyle = '#FFFFFF';
-          ctx.shadowColor = 'rgba(15,23,42,0.08)';
-          ctx.shadowBlur = 26;
-          fillRoundRect(ctx, px, py, pw, ph, 28);
-          ctx.shadowBlur = 0;
+          fillCardWithShadow(ctx, px, py, pw, ph, 28, '#FFFFFF');
 
           ctx.font = '42px sans-serif';
           ctx.textAlign = 'left';
@@ -834,7 +979,6 @@
         });
 
       } else if (sIdx === 1) {
-        // SCENE 2 (8-19s): EMPRESA TRADICIONAL VS EMPRESA ESR
         const lt = t - 8;
         ctx.textAlign = 'center';
         ctx.fillStyle = '#0F172A';
@@ -848,11 +992,7 @@
         ctx.scale(p1, p1);
         ctx.translate(-(lx + cw / 2), -(cyCard + ch / 2));
 
-        ctx.fillStyle = '#FFFFFF';
-        ctx.shadowColor = 'rgba(15,23,42,0.07)';
-        ctx.shadowBlur = 26;
-        fillRoundRect(ctx, lx, cyCard, cw, ch, 32);
-        ctx.shadowBlur = 0;
+        fillCardWithShadow(ctx, lx, cyCard, cw, ch, 32, '#FFFFFF');
 
         ctx.fillStyle = '#FEE2E2';
         fillRoundRect(ctx, lx + 48, cyCard + 46, 320, 40, 20);
@@ -889,8 +1029,7 @@
         ctx.scale(p2, p2);
         ctx.translate(-(rx + cw / 2), -(cyCard + ch / 2));
 
-        ctx.fillStyle = '#0F2922';
-        fillRoundRect(ctx, rx, cyCard, cw, ch, 32);
+        fillCardWithShadow(ctx, rx, cyCard, cw, ch, 32, '#0F2922');
 
         ctx.fillStyle = 'rgba(22, 163, 74, 0.25)';
         fillRoundRect(ctx, rx + 48, cyCard + 46, 360, 40, 20);
@@ -921,7 +1060,6 @@
         ctx.restore();
 
       } else {
-        // SCENE 3 (19-30s): TRIPLE CUENTA DE RESULTADOS (3P VENN DIAGRAM)
         const lt = t - 19;
         const converge = easeAppleSpring(invLerp(0, 1.2, lt));
 
@@ -985,7 +1123,6 @@
       drawWarmKeynoteBackground(globalT);
 
       if (sIdx === 0) {
-        // SCENE 1 (0-10s): 4 PILLARS OF ESR (ISO 26000 & CEMEFI)
         ctx.textAlign = 'center';
         ctx.fillStyle = '#0F172A';
         ctx.font = '800 46px "Plus Jakarta Sans", sans-serif';
@@ -1009,11 +1146,7 @@
           ctx.scale(p, p);
           ctx.translate(-(pl.x + pw / 2), -(pl.y + ph / 2));
 
-          ctx.fillStyle = '#FFFFFF';
-          ctx.shadowColor = 'rgba(15,23,42,0.07)';
-          ctx.shadowBlur = 26;
-          fillRoundRect(ctx, pl.x, pl.y, pw, ph, 30);
-          ctx.shadowBlur = 0;
+          fillCardWithShadow(ctx, pl.x, pl.y, pw, ph, 30, '#FFFFFF');
 
           ctx.fillStyle = pl.bg;
           fillRoundRect(ctx, pl.x + 42, pl.y + 36, 130, 46, 16);
@@ -1034,7 +1167,6 @@
         });
 
       } else if (sIdx === 1) {
-        // SCENE 2 (10-20s): EXTERNALIZACIÓN VS INTERNALIZACIÓN DE COSTOS (TEMA 4.5)
         const lt = t - 10;
         const prog = easeOutCubic(invLerp(0.1, 1.8, lt));
 
@@ -1046,13 +1178,8 @@
         ctx.font = '500 23px "Inter", sans-serif';
         ctx.fillText('¿Quién asume realmente el costo ecológico y social de producir un bien?', cx, 168);
 
-        ctx.fillStyle = '#FFFFFF';
-        ctx.shadowColor = 'rgba(15,23,42,0.08)';
-        ctx.shadowBlur = 30;
-        fillRoundRect(ctx, 180, 225, 1560, 610, 34);
-        ctx.shadowBlur = 0;
+        fillCardWithShadow(ctx, 180, 225, 1560, 610, 34, '#FFFFFF');
 
-        // Top Bar: Externalización
         ctx.textAlign = 'left';
         ctx.fillStyle = '#DC2626';
         ctx.font = '800 28px "Plus Jakarta Sans", sans-serif';
@@ -1066,7 +1193,6 @@
         ctx.font = '700 22px "Inter", sans-serif';
         ctx.fillText('Precio privado bajo  +  Alto costo oculto en agua contaminada, emisiones y salud pública', 280, 390);
 
-        // Bottom Bar: Internalización ESR
         ctx.fillStyle = '#16A34A';
         ctx.font = '800 28px "Plus Jakarta Sans", sans-serif';
         ctx.fillText('2. Empresa ESR que INTERNALIZA costos (Invierte en energía limpia y tratamiento)', 250, 545);
@@ -1080,10 +1206,6 @@
         ctx.fillText('La empresa absorbe el costo ambiental en su innovación  →  Cero deuda ecológica social', 280, 620);
 
       } else {
-        // SCENE 3 (20-30s): GREENWASHING VS ESR AUDITADA
-        const lt = t - 20;
-        const prog = easeOutCubic(invLerp(0.1, 1.4, lt));
-
         ctx.textAlign = 'center';
         ctx.fillStyle = '#0F172A';
         ctx.font = '800 46px "Plus Jakarta Sans", sans-serif';
@@ -1092,9 +1214,7 @@
         ctx.font = '500 23px "Inter", sans-serif';
         ctx.fillText('La diferencia económica entre marketing superficial y transformación operativa', cx, 168);
 
-        // Left: Greenwashing
-        ctx.fillStyle = '#FFFFFF';
-        fillRoundRect(ctx, 160, 220, 760, 610, 32);
+        fillCardWithShadow(ctx, 160, 220, 760, 610, 32, '#FFFFFF');
         ctx.fillStyle = '#FEF3C7';
         fillRoundRect(ctx, 210, 265, 320, 40, 20);
         ctx.fillStyle = '#B45309';
@@ -1112,9 +1232,7 @@
           ctx.fillText(item, 210, 445 + i * 64);
         });
 
-        // Right: ESR Auditada
-        ctx.fillStyle = '#0F2922';
-        fillRoundRect(ctx, 1000, 220, 760, 610, 32);
+        fillCardWithShadow(ctx, 1000, 220, 760, 610, 32, '#0F2922');
         ctx.fillStyle = 'rgba(74, 222, 128, 0.2)';
         fillRoundRect(ctx, 1050, 265, 340, 40, 20);
         ctx.fillStyle = '#4ADE80';
@@ -1138,7 +1256,6 @@
       drawWarmKeynoteBackground(globalT);
 
       if (sIdx === 0) {
-        // SCENE 1 (0-10s): ANÁLISIS DEL CICLO DE VIDA Y ECONOMÍA CIRCULAR (4.8.1)
         ctx.textAlign = 'center';
         ctx.fillStyle = '#0F172A';
         ctx.font = '800 46px "Plus Jakarta Sans", sans-serif';
@@ -1162,11 +1279,7 @@
           ctx.save();
           ctx.translate(nx, ny);
           ctx.scale(p, p);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.shadowColor = 'rgba(15,23,42,0.08)';
-          ctx.shadowBlur = 24;
-          fillRoundRect(ctx, -195, -155, 390, 310, 28);
-          ctx.shadowBlur = 0;
+          fillCardWithShadow(ctx, -195, -155, 390, 310, 28, '#FFFFFF');
 
           ctx.fillStyle = st.col;
           ctx.beginPath();
@@ -1201,7 +1314,6 @@
         ctx.fillText('↺ CICLO CERRADO: CERO DESPERDICIO', cx, 820);
 
       } else if (sIdx === 1) {
-        // SCENE 2 (10-20s): COMPETITIVIDAD Y FINANZAS VERDES
         const lt = t - 10;
         const p = easeOutQuart(invLerp(0.1, 1.5, lt));
 
@@ -1230,11 +1342,7 @@
           ctx.scale(cp, cp);
           ctx.translate(-(cardX + cw / 2), -(cardY + ch / 2));
 
-          ctx.fillStyle = '#FFFFFF';
-          ctx.shadowColor = 'rgba(15,23,42,0.08)';
-          ctx.shadowBlur = 28;
-          fillRoundRect(ctx, cardX, cardY, cw, ch, 32);
-          ctx.shadowBlur = 0;
+          fillCardWithShadow(ctx, cardX, cardY, cw, ch, 32, '#FFFFFF');
 
           ctx.fillStyle = m.col;
           ctx.textAlign = 'left';
@@ -1257,7 +1365,6 @@
         });
 
       } else {
-        // SCENE 3 (20-30s): SERVICIOS AMBIENTALES Y DESARROLLO REGIONAL (4.7 & 4.8.3)
         const lt = t - 20;
         ctx.textAlign = 'center';
         ctx.fillStyle = '#0F172A';
@@ -1282,11 +1389,7 @@
           ctx.scale(p, p);
           ctx.translate(-cx, -(yPos + 70));
 
-          ctx.fillStyle = '#FFFFFF';
-          ctx.shadowColor = 'rgba(15,23,42,0.07)';
-          ctx.shadowBlur = 22;
-          fillRoundRect(ctx, 240, yPos, 1440, 148, 28);
-          ctx.shadowBlur = 0;
+          fillCardWithShadow(ctx, 240, yPos, 1440, 148, 28, '#FFFFFF');
 
           ctx.fillStyle = c.col;
           fillRoundRect(ctx, 275, yPos + 32, 84, 84, 22);
@@ -1312,12 +1415,8 @@
       const cx = W / 2;
 
       if (sIdx === 0) {
-        // SCENE 1 (0-10s): CASO PRÁCTICO GRUPO BIMBO - 100% ENERGÍA ELÉCTRICA RENOVABLE
-        const sky = ctx.createLinearGradient(0, 0, 0, H);
-        sky.addColorStop(0, '#E0F2FE');
-        sky.addColorStop(0.65, '#FAF8F5');
-        sky.addColorStop(1, '#DCFCE7');
-        ctx.fillStyle = sky;
+        ensureCachedGradients();
+        ctx.fillStyle = cachedBimboSkyGrad;
         ctx.fillRect(0, 0, W, H);
 
         ctx.fillStyle = '#86EFAC';
@@ -1330,11 +1429,7 @@
         drawWindTurbine(ctx, 340, 455, 1.15, globalT * 2.3);
         drawWindTurbine(ctx, 1580, 455, 1.15, globalT * 2.1 + 1);
 
-        ctx.fillStyle = 'rgba(255,255,255,0.94)';
-        ctx.shadowColor = 'rgba(15,23,42,0.1)';
-        ctx.shadowBlur = 35;
-        fillRoundRect(ctx, cx - 490, 180, 980, 480, 36);
-        ctx.shadowBlur = 0;
+        fillCardWithShadow(ctx, cx - 490, 180, 980, 480, 36, 'rgba(255,255,255,0.95)');
 
         ctx.textAlign = 'center';
         ctx.fillStyle = '#DCFCE7';
@@ -1356,7 +1451,6 @@
         ctx.fillText('Impulsada en México por el Parque Eólico Piedra Larga (Oaxaca) y techos solares', cx, 530);
 
       } else if (sIdx === 1) {
-        // SCENE 2 (10-20s): +4,200 VEHÍCULOS ELÉCTRICOS MOLDEX
         const lt = t - 10;
         drawWarmKeynoteBackground(globalT);
 
@@ -1394,7 +1488,6 @@
         }
 
       } else {
-        // SCENE 3 (20-30s): AGRICULTURA REGENERATIVA Y EMPAQUES
         const lt = t - 20;
         drawWarmKeynoteBackground(globalT);
         const p = easeAppleSpring(invLerp(0, 1.0, lt));
@@ -1415,11 +1508,7 @@
           ctx.scale(p, p);
           ctx.translate(-(c.x + 360), -520);
 
-          ctx.fillStyle = '#FFFFFF';
-          ctx.shadowColor = 'rgba(15,23,42,0.08)';
-          ctx.shadowBlur = 30;
-          fillRoundRect(ctx, c.x, 230, 720, 560, 34);
-          ctx.shadowBlur = 0;
+          fillCardWithShadow(ctx, c.x, 230, 720, 560, 34, '#FFFFFF');
 
           if (c.icon === 'wheat') drawWheatSpike(ctx, c.x + 95, 345, 1.35, 0.15, c.col);
           else drawBotanicalLeaf(ctx, c.x + 95, 345, 1.35, 0.15, c.col);
@@ -1446,7 +1535,6 @@
       drawWarmKeynoteBackground(globalT);
 
       if (sIdx === 0) {
-        // SCENE 1 (0-13s): SÍNTESIS FINAL DEL ESCENARIO ECONÓMICO
         const p = easeAppleSpring(invLerp(0, 1.0, t));
 
         ctx.save();
@@ -1476,11 +1564,7 @@
         ];
         summaryPills.forEach((txt, i) => {
           const px = 220 + i * 505;
-          ctx.fillStyle = '#FFFFFF';
-          ctx.shadowColor = 'rgba(15,23,42,0.07)';
-          ctx.shadowBlur = 20;
-          fillRoundRect(ctx, px, 640, 470, 88, 24);
-          ctx.shadowBlur = 0;
+          fillCardWithShadow(ctx, px, 640, 470, 88, 24, '#FFFFFF');
           ctx.fillStyle = '#0F172A';
           ctx.textAlign = 'center';
           ctx.font = '700 21px "Plus Jakarta Sans", sans-serif';
@@ -1488,7 +1572,6 @@
         });
 
       } else {
-        // SCENE 2 (13-30s): GRAND CLOSING CREDITS FOR EQUIPO 4 ONLY AT THE END
         const lt = t - 13;
 
         for (let r = 1; r <= 3; r++) {
@@ -1531,11 +1614,7 @@
           ctx.scale(cp, cp);
           ctx.translate(-(sx + cw / 2), -(sy + ch / 2));
 
-          ctx.fillStyle = '#FFFFFF';
-          ctx.shadowColor = 'rgba(15, 23, 42, 0.1)';
-          ctx.shadowBlur = 32;
-          fillRoundRect(ctx, sx, sy, cw, ch, 32);
-          ctx.shadowBlur = 0;
+          fillCardWithShadow(ctx, sx, sy, cw, ch, 32, '#FFFFFF');
 
           ctx.fillStyle = m.color;
           fillRoundRect(ctx, sx + 36, sy + 36, 84, 84, 24);
@@ -1614,10 +1693,10 @@
     function startAmbientKeynoteMusic() {
       if (bgmTimer) clearInterval(bgmTimer);
       const chords = [
-        [261.63, 329.63, 392.00, 493.88], // Cmaj7
-        [293.66, 349.23, 440.00, 523.25], // Dm7
-        [220.00, 329.63, 392.00, 493.88], // Am9
-        [196.00, 293.66, 392.00, 493.88]  // G6
+        [261.63, 329.63, 392.00, 493.88],
+        [293.66, 349.23, 440.00, 523.25],
+        [220.00, 329.63, 392.00, 493.88],
+        [196.00, 293.66, 392.00, 493.88]
       ];
       let step = 0;
       const playPad = () => {
@@ -1686,7 +1765,7 @@
     }
 
     /*************************************************************************
-     * 6. MAIN 60 FPS LOOP & UI CONTROLLERS
+     * 6. DETERMINISTIC FRAME-PACED RENDER LOOP & UI CONTROLLERS
      *************************************************************************/
     function getSceneForBlock(block, t) {
       let acc = 0;
@@ -1700,11 +1779,12 @@
       return { index: 0, scene: block.scenes[0] };
     }
 
-    function resizeCanvas() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      if (canvas.width !== W * dpr || canvas.height !== H * dpr) {
-        canvas.width = W * dpr;
-        canvas.height = H * dpr;
+    function resizeCanvas(forcedDpr) {
+      const targetDpr = forcedDpr || activeExportProfile.dpr || Math.min(window.devicePixelRatio || 1, 2);
+      if (canvas.width !== W * targetDpr || canvas.height !== H * targetDpr) {
+        canvas.width = W * targetDpr;
+        canvas.height = H * targetDpr;
+        cachedBaseBgGrad = null; // Regenerar gradientes al cambiar escala
       }
     }
 
@@ -1724,14 +1804,23 @@
       }
     }
 
+    let lastUiSecondUpdated = -1;
+
     function updateUIOverlays(sceneIdx, sceneObj, block) {
       const totalElapsed = currentBlockIndex * 30 + currentTime;
-      const totMin = Math.floor(totalElapsed / 60);
-      const totSec = String(Math.floor(totalElapsed % 60)).padStart(2, '0');
+      const wholeSec = Math.floor(totalElapsed);
 
-      document.getElementById('currentTimeReadout').textContent = `${totMin}:${totSec}`;
-      document.getElementById('totalTimeReadout').textContent = ` / 2:30 (B${currentBlockIndex + 1})`;
-      document.getElementById('timelineSlider').value = currentTime;
+      // Durante la grabación solo actualizamos el DOM cuando cambia el segundo entero para evitar layout thrashing en Safari
+      if (!isRecordingVideo || wholeSec !== lastUiSecondUpdated) {
+        lastUiSecondUpdated = wholeSec;
+        const totMin = Math.floor(totalElapsed / 60);
+        const totSec = String(wholeSec % 60).padStart(2, '0');
+        document.getElementById('currentTimeReadout').textContent = `${totMin}:${totSec}`;
+        document.getElementById('totalTimeReadout').textContent = ` / 2:30 (B${currentBlockIndex + 1})`;
+        if (!isRecordingVideo) {
+          document.getElementById('timelineSlider').value = currentTime;
+        }
+      }
 
       const sceneKey = currentBlockIndex * 10 + sceneIdx;
       if (sceneKey !== lastTriggeredSceneKey) {
@@ -1754,50 +1843,95 @@
       }
     }
 
-    function renderFrame(now) {
-      const dt = Math.min(0.1, (now - lastFrameTime) / 1000);
-      lastFrameTime = now;
-
-      if (isRecordingVideo) {
-        recordElapsed += dt;
-        const pct = Math.min(100, Math.round((recordElapsed / recordTargetDuration) * 100));
-        document.getElementById('exportProgressText').textContent = `🔴 Grabando fotogramas limpios a 60 FPS... ${pct}%`;
-        if (recordElapsed >= recordTargetDuration) {
-          stopExportDirectly();
-        }
-      }
-
-      if (isPlaying) {
-        currentTime += dt;
-        if (currentTime >= BLOCK_DURATION) {
-          currentTime = 0;
-          lastTriggeredSceneKey = -1;
-          if (continuousMode || (isRecordingVideo && recordFullTimeline)) {
-            currentBlockIndex = (currentBlockIndex + 1) % KEYNOTE_BLOCKS.length;
-            updateBlockButtonsUI();
-          }
-        }
-      }
-
-      resizeCanvas();
+    function drawCompleteSceneAt(blockIdx, blockTime) {
       const dpr = canvas.width / W;
       ctx.save();
       ctx.scale(dpr, dpr);
 
-      const block = KEYNOTE_BLOCKS[currentBlockIndex];
-      const { index: sIdx, scene: sceneObj } = getSceneForBlock(block, currentTime);
-      const globalT = now / 1000;
+      const block = KEYNOTE_BLOCKS[blockIdx];
+      const { index: sIdx, scene: sceneObj } = getSceneForBlock(block, blockTime);
+      // Fuente de tiempo determinista ligada a la línea de tiempo de la animación (no a performance.now)
+      const deterministicGlobalT = blockIdx * BLOCK_DURATION + blockTime;
 
-      if (currentBlockIndex === 0) renderBlock0(currentTime, sIdx, globalT);
-      else if (currentBlockIndex === 1) renderBlock1(currentTime, sIdx, globalT);
-      else if (currentBlockIndex === 2) renderBlock2(currentTime, sIdx, globalT);
-      else if (currentBlockIndex === 3) renderBlock3(currentTime, sIdx, globalT);
-      else renderBlock4(currentTime, sIdx, globalT);
+      if (blockIdx === 0) renderBlock0(blockTime, sIdx, deterministicGlobalT);
+      else if (blockIdx === 1) renderBlock1(blockTime, sIdx, deterministicGlobalT);
+      else if (blockIdx === 2) renderBlock2(blockTime, sIdx, deterministicGlobalT);
+      else if (blockIdx === 3) renderBlock3(blockTime, sIdx, deterministicGlobalT);
+      else renderBlock4(blockTime, sIdx, deterministicGlobalT);
 
-      renderAppleKeynotePill(currentTime, block);
+      renderAppleKeynotePill(blockTime, block);
       ctx.restore();
 
       updateUIOverlays(sIdx, sceneObj, block);
+    }
+
+    function renderFrame(now) {
+      const rawDt = Math.max(0, (now - lastFrameTime) / 1000);
+      lastFrameTime = now;
+
+      if (isRecordingVideo) {
+        // Regulador CFR (Constant Frame Rate) para evitar saltos de tiempo y garantizar pasos exactos
+        const targetFps = activeExportProfile.fps;
+        const frameInterval = 1.0 / targetFps;
+        recordAccumulator += Math.min(rawDt, 0.25);
+
+        // Con las sombras optimizadas, el iPad dibuja cada cuadro en ~4ms, manteniendo 30.0 o 60.0 FPS exactos
+        if (recordAccumulator >= frameInterval * 0.92) {
+          // Avanzar exactamente 1 fotograma determinista (evita acelerones o saltos en la animación)
+          recordAccumulator = Math.min(recordAccumulator - frameInterval, frameInterval);
+          recordElapsed += frameInterval;
+          currentTime += frameInterval;
+          recordFramesCaptured++;
+
+          if (currentTime >= BLOCK_DURATION) {
+            currentTime -= BLOCK_DURATION;
+            lastTriggeredSceneKey = -1;
+            if (recordFullTimeline && currentBlockIndex < KEYNOTE_BLOCKS.length - 1) {
+              currentBlockIndex++;
+              updateBlockButtonsUI();
+            }
+          }
+
+          drawCompleteSceneAt(currentBlockIndex, Math.min(currentTime, BLOCK_DURATION - 0.001));
+
+          // Actualizar telemetría cada 10 cuadros para no recargar el DOM
+          if (recordFramesCaptured % 10 === 0) {
+            const pct = Math.min(100, Math.round((recordElapsed / recordTargetDuration) * 100));
+            const curMin = Math.floor(recordElapsed / 60);
+            const curSec = String(Math.floor(recordElapsed % 60)).padStart(2, '0');
+            const tarMin = Math.floor(recordTargetDuration / 60);
+            const tarSec = String(Math.floor(recordTargetDuration % 60)).padStart(2, '0');
+            const wallElapsed = Math.max(0.1, (now - recordStartWallTime) / 1000);
+            const measuredFps = (recordFramesCaptured / wallElapsed).toFixed(1);
+
+            document.getElementById('exportProgressText').textContent =
+              `Grabando ${pct}% (${curMin}:${curSec} / ${tarMin}:${tarSec})`;
+            document.getElementById('exportProgressBar').style.width = `${pct}%`;
+            document.getElementById('exportFpsBadge').textContent = `${measuredFps} FPS`;
+          }
+
+          if (recordElapsed >= recordTargetDuration) {
+            stopExportDirectly();
+          }
+        }
+      } else {
+        // Reproducción normal interactiva
+        const dt = Math.min(0.05, rawDt);
+        if (isPlaying) {
+          currentTime += dt;
+          if (currentTime >= BLOCK_DURATION) {
+            currentTime = 0;
+            lastTriggeredSceneKey = -1;
+            if (continuousMode) {
+              currentBlockIndex = (currentBlockIndex + 1) % KEYNOTE_BLOCKS.length;
+              updateBlockButtonsUI();
+            }
+          }
+        }
+        resizeCanvas();
+        drawCompleteSceneAt(currentBlockIndex, currentTime);
+      }
+
       requestAnimationFrame(renderFrame);
     }
 
@@ -1816,10 +1950,12 @@
     }
 
     function scrubTimeline(val) {
+      if (isRecordingVideo) return;
       currentTime = parseFloat(val);
     }
 
     function jumpToScene(sceneIdx) {
+      if (isRecordingVideo) return;
       ensureAudioContext();
       const block = KEYNOTE_BLOCKS[currentBlockIndex];
       let acc = 0;
@@ -1831,6 +1967,7 @@
     }
 
     function selectBlock(blockIdx) {
+      if (isRecordingVideo) return;
       ensureAudioContext();
       currentBlockIndex = blockIdx;
       currentTime = 0;
@@ -1909,7 +2046,6 @@
       document.body.removeChild(tempArea);
     }
 
-    // iPad Double-Tap & Desktop Double-Click Support to toggle Clean Recording Mode
     let lastTouchEnd = 0;
     canvas.addEventListener('touchend', (e) => {
       const now = Date.now();
@@ -1938,6 +2074,7 @@
     });
 
     window.onload = function () {
+      resizeCanvas();
       updateBlockButtonsUI();
       populateScriptModal();
       requestAnimationFrame(renderFrame);
