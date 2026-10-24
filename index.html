@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Showreel Apple Keynote ESR - Equipo 4 (Exportador MP4 1080p)</title>
+<style>
+  :root {
+    --bg-cream: #FAF8F5;
+    --ink: #1D1D1F;
+    --muted: #6E6E73;
+    --green: #16A34A;
+    --amber: #D97706;
+    --red: #DC2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+  body {
+    background: #111113;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, sans-serif;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Lienzo bloqueado en proporción 16:9 Full HD */
+  canvas {
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+    background: var(--bg-cream);
+    display: block;
+  }
+
+  #topbar {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+    align-items: center;
+    width: max-content;
+    max-width: 96vw;
+    background: rgba(29, 29, 31, 0.9);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    padding: 8px 12px;
+    border-radius: 999px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  #topbar.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -30px);
+  }
+  .btn {
+    border: none;
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 7px 11px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn:active { transform: scale(0.95); }
+  .btn.active { background: #16A34A; color: #fff; }
+  .btn.amber { background: #D97706; color: #fff; }
+  .btn.rec { background: #DC2626; color: #fff; font-weight: 700; }
+  .divider { width: 1px; height: 18px; background: rgba(255,255,255,0.2); margin: 0 2px; }
+
+  /* Indicador de renderizado MP4 */
+  #recBanner {
+    position: fixed;
+    top: 68px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 35;
+    background: rgba(220, 38, 38, 0.95);
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 8px 25px rgba(220,38,38,0.4);
+  }
+  #recBanner.active { display: flex; }
+
+  /* Subtítulo / Teleprompter inferior */
+  #teleprompter {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 25;
+    max-width: 840px;
+    width: 90%;
+    background: rgba(29, 29, 31, 0.86);
+    color: #fff;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    padding: 11px 20px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.45;
+    text-align: center;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.2);
+  }
+  #teleprompter.hidden { opacity: 0; pointer-events: none; }
+  #teleprompter span.tag {
+    display: inline-block;
+    background: #16A34A;
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-right: 8px;
+  }
+
+  /* Modal de Descarga MP4 y Guion */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(0,0,0,0.65);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-card {
+    background: #fff;
+    color: var(--ink);
+    max-width: 780px;
+    width: 100%;
+    max-height: 84vh;
+    border-radius: 24px;
+    padding: 24px;
+    overflow-y: auto;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+    user-select: text;
+    -webkit-user-select: text;
+  }
+  .script-block {
+    background: #F9FAFB;
+    border: 1px solid #E5E7EB;
+    border-radius: 14px;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+  }
+  .script-block h4 { color: #16A34A; font-size: 12.5px; text-transform: uppercase; margin-bottom: 5px; }
+  .script-block p { font-size: 14px; line-height: 1.5; color: #1F2937; margin-bottom: 5px; }
+</style>
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<div id="topbar">
+  <button class="btn active" onclick="setBlock(0)" id="b0">B1</button>
+  <button class="btn" onclick="setBlock(1)" id="b1">B2</button>
+  <button class="btn" onclick="setBlock(2)" id="b2">B3</button>
+  <button class="btn" onclick="setBlock(3)" id="b3">B4 · Bimbo</button>
+  <button class="btn" onclick="setBlock(4)" id="b4">B5 · Equipo 4</button>
+  <div class="divider"></div>
+  <button class="btn rec" onclick="startExport(false)">⬇️ Exportar Bloque (30s MP4)</button>
+  <button class="btn rec" onclick="startExport(true)">⬇️ Exportar Todo (2:30 MP4)</button>
+  <div class="divider"></div>
+  <button class="btn active" id="btnSub" onclick="toggleSub()">💬 Subtítulos</button>
+  <button class="btn amber" onclick="openScript()">📄 Guion IA</button>
+  <button class="btn" onclick="hideUI()">⏺ Ocultar Menú</button>
+</div>
+
+<div id="recBanner">
+  <span id="recStatus">🔴 Renderizando MP4 1080p (Sin botones en el video)... 0%</span>
+  <button class="btn" style="background:#1D1D1F;" onclick="stopExportEarly()">⏹ Terminar y Guardar Ahora</button>
+</div>
+
+<div id="teleprompter">
+  <span class="tag" id="tpTag">0:00</span>
+  <span id="tpText">Resolución bloqueada en Full HD 1920×1080. Usa los botones rojos para descargar el video limpio.</span>
+</div>
+
+<!-- Modal cuando termina de generarse el video MP4 -->
+<div id="downloadModal" class="modal-overlay">
+  <div class="modal-card" style="max-width:480px; text-align:center;">
+    <h2 style="font-size:22px; margin-bottom:8px;">✅ ¡Tu video Full HD 1080p está listo!</h2>
+    <p style="font-size:14px; color:#6E6E73; margin-bottom:18px;">
+      Se grabó directamente del lienzo a 1920×1080 (sin menús ni barras). Elige cómo guardarlo en tu iPad:
+    </p>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <button class="btn active" style="padding:14px; font-size:15px;" onclick="shareVideoFile()">
+        📲 Guardar en Archivos / Enviar a CapCut (iPad)
+      </button>
+      <a id="directDownloadLink" class="btn amber" style="padding:14px; font-size:15px; text-decoration:none; display:block;">
+        ⬇️ Descargar archivo directo
+      </a>
+      <button class="btn" style="background:#E5E7EB; color:#1D1D1F; padding:12px;" onclick="closeDownloadModal()">
+        Cerrar ventana
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal del Guion para Voz IA -->
+<div id="scriptModal" class="modal-overlay">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div>
+        <h2 style="font-size:19px;">🎙️ Guion Corrido para Voz IA (2:30 min)</h2>
+        <p style="font-size:12.5px; color:#6E6E73;">Un solo narrador · Créditos del Equipo 4 al final.</p>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn active" onclick="copyScript()">📋 Copiar texto limpio</button>
+        <button class="btn" style="background:#1D1D1F;" onclick="closeScript()">✕ Cerrar</button>
+      </div>
+    </div>
+    <div id="scriptContainer"></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d', { alpha: false });
+
+// RESOLUCIÓN INTERNA FIJA EN FULL HD 1920x1080 (Escala lógica 1280x720 * 1.5)
+const W = 1280;
+const H = 720;
+const SCALE = 1.5; // 1280 * 1.5 = 1920px | 720 * 1.5 = 1080px
+canvas.width = 1920;
+canvas.height = 1080;
+ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+
+const BLOCKS = [
+  {
+    name: "Bloque 1 · ¿Qué es una Empresa Socialmente Responsable?",
+    scenes: [
+      { dur: 7, tag: "0:00 - 0:07", sub: "En el escenario económico actual, el éxito de una organización ya no se mide únicamente por sus utilidades trimestrales, sino por su impacto integral en el entorno." },
+      { dur: 11, tag: "0:07 - 0:18", sub: "Una Empresa Socialmente Responsable, o ESR, es aquella que integra voluntariamente el respeto ambiental, la ética y el bienestar social dentro de su estrategia productiva." },
+      { dur: 12, tag: "0:18 - 0:30", sub: "Su base es el modelo de la Triple Cuenta de Resultados: equilibrar simultáneamente Personas, Planeta y Rentabilidad económica para generar valor sostenible." }
+    ]
+  },
+  {
+    name: "Bloque 2 · Los 4 Pilares y la Internalización de Costos",
+    scenes: [
+      { dur: 10, tag: "0:30 - 0:40", sub: "Bajo estándares internacionales como ISO 26000 y el CEMEFI, una ESR se sostiene en cuatro pilares: Ética empresarial, Calidad de vida laboral, Vinculación comunitaria y Medio ambiente." },
+      { dur: 10, tag: "0:40 - 0:50", sub: "Económicamente, la diferencia clave está en los costos. Mientras el modelo tradicional externaliza su contaminación hacia la sociedad, una ESR internaliza sus costos." },
+      { dur: 10, tag: "0:50 - 1:00", sub: "Esto separa el simple marketing verde, o Greenwashing, de la sustentabilidad real verificada con métricas de huella hídrica y reducción de emisiones." }
+    ]
+  },
+  {
+    name: "Bloque 3 · Ciclo de Vida, Economía Circular y Desarrollo Regional",
+    scenes: [
+      { dur: 10, tag: "1:00 - 1:10", sub: "Para reducir su huella ecológica, las ESR aplican el análisis del ciclo de vida, transformando cadenas lineales de extracción y desecho en sistemas de economía circular." },
+      { dur: 10, tag: "1:10 - 1:20", sub: "Lejos de ser un gasto, la responsabilidad social impulsa la competitividad: reduce hasta 32% los costos energéticos y abre el acceso a bonos verdes e inversión ESG." },
+      { dur: 10, tag: "1:20 - 1:30", sub: "Además, detona el desarrollo regional al integrar proveedores locales y valorar económicamente los servicios ambientales como el agua, el suelo y los bosques." }
+    ]
+  },
+  {
+    name: "Bloque 4 · Caso de Estudio Real: Grupo Bimbo",
+    scenes: [
+      { dur: 10, tag: "1:30 - 1:40", sub: "Un ejemplo tangible en México y el mundo es Grupo Bimbo, que opera hoy con energía eléctrica 100% renovable proveniente de parques eólicos y techos solares." },
+      { dur: 10, tag: "1:40 - 1:50", sub: "En logística sustentable, supera los 4,200 vehículos eléctricos de reparto, muchos diseñados e integrados en el país por su filial de ingeniería Moldex." },
+      { dur: 10, tag: "1:50 - 2:00", sub: "Y en su cadena agrícola, impulsa más de 500 mil hectáreas de agricultura regenerativa junto con un 94% de empaques totalmente reciclables o biodegradables." }
+    ]
+  },
+  {
+    name: "Bloque 5 · Síntesis Económica y Créditos del Equipo 4",
+    scenes: [
+      { dur: 14, tag: "2:00 - 2:14", sub: "En conclusión, las Empresas Socialmente Responsables demuestran que la viabilidad económica del siglo XXI depende de regenerar el capital natural y social que hace posible toda producción." },
+      { dur: 16, tag: "2:14 - 2:30", sub: "Proyecto presentado para la unidad de Escenario Económico por el Equipo 4: Luciano Bustillos, David García, Luis Payán y Armando Loya. Muchas gracias." }
+    ]
+  }
+];
+
+let currentBlock = 0;
+let blockTime = 0;
+let lastFrame = performance.now();
+let subOn = true;
+let lastSceneIndex = -1;
+
+// --- EXPORTADOR NATIVO MP4 / WEBM EN 1080p ---
+let mediaRecorder = null;
+let recordedChunks = [];
+let isExporting = false;
+let exportFullVideo = false;
+let exportElapsed = 0;
+let exportTargetDuration = 30;
+let lastExportedFile = null;
+
+function getSupportedMimeType() {
+  const types = [
+    'video/mp4;codecs=avc1.42E01E',
+    'video/mp4',
+    'video/webm;codecs=vp9',
+    'video/webm'
+  ];
+  for (const t of types) {
+    if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return '';
+}
+
+function startExport(full) {
+  if (!window.MediaRecorder) {
+    alert('Tu navegador actual bloquea MediaRecorder. Abre este código en Safari para exportar el MP4.');
+    return;
+  }
+  exportFullVideo = full;
+  exportTargetDuration = full ? 150 : 30;
+  exportElapsed = 0;
+  if (full) currentBlock = 0;
+  blockTime = 0;
+  updateBlockButtons();
+
+  const stream = canvas.captureStream(60);
+  const mimeType = getSupportedMimeType();
+  const options = mimeType ? { mimeType, videoBitsPerSecond: 16000000 } : { videoBitsPerSecond: 16000000 };
+
+  recordedChunks = [];
+  mediaRecorder = new MediaRecorder(stream, options);
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+  };
+  mediaRecorder.onstop = () => {
+    const ext = (mimeType && mimeType.includes('mp4')) ? 'mp4' : 'mp4';
+    const blob = new Blob(recordedChunks, { type: mimeType || 'video/mp4' });
+    const filename = exportFullVideo ? `ESR_Equipo4_Completo_1080p.${ext}` : `ESR_Equipo4_Bloque${currentBlock + 1}_1080p.${ext}`;
+    lastExportedFile = new File([blob], filename, { type: blob.type });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.getElementById('directDownloadLink');
+    link.href = url;
+    link.download = filename;
+
+    document.getElementById('recBanner').classList.remove('active');
+    document.getElementById('downloadModal').classList.add('open');
+  };
+
+  mediaRecorder.start(250);
+  isExporting = true;
+  document.getElementById('recBanner').classList.add('active');
+}
+
+function stopExportEarly() {
+  if (isExporting && mediaRecorder && mediaRecorder.state !== 'inactive') {
+    isExporting = false;
+    mediaRecorder.stop();
+  }
+}
+
+async function shareVideoFile() {
+  if (!lastExportedFile) return;
+  if (navigator.canShare && navigator.canShare({ files: [lastExportedFile] })) {
+    try {
+      await navigator.share({
+        files: [lastExportedFile],
+        title: 'Video ESR 1080p - Equipo 4'
+      });
+    } catch (err) {}
+  } else {
+    document.getElementById('directDownloadLink').click();
+  }
+}
+
+function closeDownloadModal() {
+  document.getElementById('downloadModal').classList.remove('open');
+}
+
+// --- FUNCIONES DE DIBUJO EN FULL HD ---
+function roundRect(x, y, w, h, r, fill, stroke) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
+  else ctx.rect(x, y, w, h);
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke(); }
+}
+
+function drawShadowCard(x, y, w, h, r = 24, bg = '#FFFFFF') {
+  ctx.save();
+  ctx.shadowColor = 'rgba(29, 29, 31, 0.08)';
+  ctx.shadowBlur = 28;
+  ctx.shadowOffsetY = 10;
+  roundRect(x, y, w, h, r, bg, 'rgba(0,0,0,0.06)');
+  ctx.restore();
+}
+
+function drawBadge(x, y, text, bg = '#DCFCE7', fg = '#15803D') {
+  ctx.font = '700 13px -apple-system, sans-serif';
+  const tw = ctx.measureText(text).width + 28;
+  roundRect(x - tw / 2, y - 15, tw, 30, 999, bg, null);
+  ctx.fillStyle = fg;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
+
+function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
+
+function drawBackground(t) {
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, '#FAF8F5');
+  grad.addColorStop(0.5, '#F4F1EA');
+  grad.addColorStop(1, '#ECFDF5');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  const glow1 = ctx.createRadialGradient(W * 0.2 + Math.sin(t * 0.5) * 40, H * 0.25, 10, W * 0.2, H * 0.25, W * 0.45);
+  glow1.addColorStop(0, 'rgba(22, 163, 74, 0.08)');
+  glow1.addColorStop(1, 'rgba(22, 163, 74, 0)');
+  ctx.fillStyle = glow1;
+  ctx.fillRect(0, 0, W, H);
+
+  const glow2 = ctx.createRadialGradient(W * 0.8 - Math.cos(t * 0.4) * 40, H * 0.75, 10, W * 0.8, H * 0.75, W * 0.45);
+  glow2.addColorStop(0, 'rgba(217, 119, 6, 0.08)');
+  glow2.addColorStop(1, 'rgba(217, 119, 6, 0)');
+  ctx.fillStyle = glow2;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function renderScene(bIdx, sIdx, localT, sceneDur, globalT) {
+  const p = Math.min(1, localT / 0.8);
+  const enter = easeOutCubic(p);
+  const cx = W / 2, cy = H / 2 - 15;
+
+  if (bIdx === 0) {
+    if (sIdx === 0) {
+      drawBadge(cx, cy - 135 * enter, "UNIDAD 4 · ESCENARIO ECONÓMICO · TEMA 4.8.2", '#DCFCE7', '#15803D');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 58px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText("Empresas Socialmente", cx, cy - 55);
+      ctx.fillStyle = '#16A34A';
+      ctx.fillText("Responsables (ESR)", cx, cy + 15);
+
+      ctx.fillStyle = '#6E6E73';
+      ctx.font = '500 20px -apple-system, sans-serif';
+      ctx.fillText("Estrategias de sustentabilidad, internalización de costos y creación de valor compartido", cx, cy + 75);
+
+      const tags = ["🌱 Sustentabilidad Ambiental", "🤝 Bienestar Social", "📈 Viabilidad Económica"];
+      tags.forEach((label, i) => {
+        const x = cx + (i - 1) * 280;
+        const y = cy + 145 + (1 - enter) * 30;
+        drawShadowCard(x - 125, y - 24, 250, 48, 999);
+        ctx.fillStyle = '#1D1D1F';
+        ctx.font = '600 15px -apple-system, sans-serif';
+        ctx.fillText(label, x, y + 2);
+      });
+    } else if (sIdx === 1) {
+      drawBadge(cx, cy - 190, "EVOLUCIÓN DEL MODELO EMPRESARIAL", '#FEF3C7', '#B45309');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 40px -apple-system, sans-serif';
+      ctx.fillText("Empresa Tradicional vs. Empresa ESR", cx, cy - 135);
+
+      const cardW = 410, cardH = 255;
+      drawShadowCard(cx - cardW - 22, cy - 80, cardW, cardH, 28, '#FFF5F5');
+      ctx.fillStyle = '#DC2626';
+      ctx.font = '700 22px -apple-system, sans-serif';
+      ctx.fillText("🏭 Enfoque Lineal Tradicional", cx - cardW/2 - 22, cy - 30);
+      ctx.fillStyle = '#4B5563';
+      ctx.font = '500 16px -apple-system, sans-serif';
+      ["• Maximiza utilidad a corto plazo", "• Externaliza costos ambientales", "• Uso intensivo de recursos finitos", "• Impacto comunitario secundario"].forEach((item, i) => {
+        ctx.fillText(item, cx - cardW/2 - 22, cy + 20 + i * 34);
+      });
+
+      drawShadowCard(cx + 22, cy - 80, cardW, cardH, 28, '#F0FDF4');
+      ctx.fillStyle = '#16A34A';
+      ctx.font = '700 22px -apple-system, sans-serif';
+      ctx.fillText("🌿 Modelo ESR (Sustentable)", cx + cardW/2 + 22, cy - 30);
+      ctx.fillStyle = '#1F2937';
+      ctx.font = '600 16px -apple-system, sans-serif';
+      ["✓ Valor económico y social a largo plazo", "✓ Internaliza su huella ecológica", "✓ Economía circular y energía limpia", "✓ Desarrollo regional y ética laboral"].forEach((item, i) => {
+        ctx.fillText(item, cx + cardW/2 + 22, cy + 20 + i * 34);
+      });
+    } else {
+      drawBadge(cx, cy - 195, "TRIPLE CUENTA DE RESULTADOS (ELKINGTON)", '#DCFCE7', '#15803D');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 40px -apple-system, sans-serif';
+      ctx.fillText("El Equilibrio de las 3P: Personas, Planeta y Profit", cx, cy - 140);
+
+      const nodes = [
+        { label: "PLANETA", sub: "Capital Natural", x: cx, y: cy - 35, color: 'rgba(22, 163, 74, 0.22)', stroke: '#16A34A' },
+        { label: "PERSONAS", sub: "Capital Social", x: cx - 105, y: cy + 95, color: 'rgba(2, 132, 199, 0.22)', stroke: '#0284C7' },
+        { label: "RENTABILIDAD", sub: "Capital Económico", x: cx + 105, y: cy + 95, color: 'rgba(217, 119, 6, 0.22)', stroke: '#D97706' }
+      ];
+      nodes.forEach(n => {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 94 * enter, 0, Math.PI * 2);
+        ctx.fillStyle = n.color;
+        ctx.fill();
+        ctx.strokeStyle = n.stroke;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = '#1D1D1F';
+        ctx.font = '800 18px -apple-system, sans-serif';
+        ctx.fillText(n.label, n.x, n.y - 6);
+        ctx.fillStyle = '#4B5563';
+        ctx.font = '500 13px -apple-system, sans-serif';
+        ctx.fillText(n.sub, n.x, n.y + 16);
+      });
+      drawBadge(cx, cy + 52, "ESR", '#1D1D1F', '#FFFFFF');
+    }
+  }
+  else if (bIdx === 1) {
+    if (sIdx === 0) {
+      drawBadge(cx, cy - 195, "NORMA ISO 26000 · DISTINTIVO CEMEFI", '#DCFCE7', '#15803D');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 40px -apple-system, sans-serif';
+      ctx.fillText("Los 4 Pilares de una Empresa Socialmente Responsable", cx, cy - 140);
+
+      const pillars = [
+        { icon: "⚖️", title: "1. Ética y Gobernanza", desc: "Transparencia, anticorrupción y comercio justo" },
+        { icon: "👩‍💼", title: "2. Calidad de Vida", desc: "Seguridad laboral, salarios dignos e inclusión" },
+        { icon: "🏘️", title: "3. Comunidad", desc: "Inversión social e impulso a proveedores locales" },
+        { icon: "🌍", title: "4. Medio Ambiente", desc: "Descarbonización, agua y cero residuos" }
+      ];
+      pillars.forEach((pl, i) => {
+        const col = i % 2, row = Math.floor(i / 2);
+        const w = 395, h = 114;
+        const x = cx + (col === 0 ? -w - 16 : 16);
+        const y = cy - 85 + row * (h + 18);
+        drawShadowCard(x, y, w, h, 22);
+        ctx.textAlign = 'left';
+        ctx.font = '32px sans-serif';
+        ctx.fillText(pl.icon, x + 22, y + 64);
+        ctx.fillStyle = '#1D1D1F';
+        ctx.font = '700 19px -apple-system, sans-serif';
+        ctx.fillText(pl.title, x + 70, y + 46);
+        ctx.fillStyle = '#6E6E73';
+        ctx.font = '500 14px -apple-system, sans-serif';
+        ctx.fillText(pl.desc, x + 70, y + 74);
+      });
+      ctx.textAlign = 'center';
+    } else if (sIdx === 1) {
+      drawBadge(cx, cy - 195, "TEMA 4.5 · EXTERNALIZACIÓN VS INTERNALIZACIÓN", '#FEF3C7', '#B45309');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 40px -apple-system, sans-serif';
+      ctx.fillText("¿Quién paga el costo real de producir?", cx, cy - 140);
+
+      const prog = Math.min(1, localT / 3.5);
+      const boxW = 840;
+      drawShadowCard(cx - boxW / 2, cy - 90, boxW, 265, 26);
+      ctx.textAlign = 'left';
+      const leftX = cx - boxW / 2 + 38;
+      const barMax = boxW - 76;
+
+      ctx.fillStyle = '#DC2626';
+      ctx.font = '700 18px -apple-system, sans-serif';
+      ctx.fillText("Empresa que EXTERNALIZA costos (Traslada el daño ambiental a la sociedad)", leftX, cy - 40);
+      roundRect(leftX, cy - 20, barMax * prog, 36, 10, '#FCA5A5');
+      ctx.fillStyle = '#7F1D1D';
+      ctx.font = '700 14px -apple-system, sans-serif';
+      ctx.fillText("Precio aparente bajo  |  +Costo oculto en ríos, salud pública y carbono", leftX + 14, cy + 3);
+
+      ctx.fillStyle = '#16A34A';
+      ctx.font = '700 18px -apple-system, sans-serif';
+      ctx.fillText("Empresa ESR que INTERNALIZA costos (Inversión en energía limpia y plantas de agua)", leftX, cy + 65);
+      roundRect(leftX, cy + 85, barMax * prog, 36, 10, '#86EFAC');
+      ctx.fillStyle = '#14532D';
+      ctx.font = '700 14px -apple-system, sans-serif';
+      ctx.fillText("Asume el costo ambiental en su proceso  →  Cero pasivos ecológicos hacia la comunidad", leftX + 14, cy + 108);
+      ctx.textAlign = 'center';
+    } else {
+      drawBadge(cx, cy - 190, "VERIFICACIÓN Y MÉTRICAS ESG", '#DCFCE7', '#15803D');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 40px -apple-system, sans-serif';
+      ctx.fillText("Greenwashing vs. Sustentabilidad Real", cx, cy - 135);
+
+      const cw = 390;
+      drawShadowCard(cx - cw - 18, cy - 75, cw, 230, 24, '#FFFBEB');
+      ctx.fillStyle = '#D97706';
+      ctx.font = '800 22px -apple-system, sans-serif';
+      ctx.fillText("⚠️ Greenwashing (Maquillaje)", cx - cw/2 - 18, cy - 25);
+      ctx.fillStyle = '#4B5563';
+      ctx.font = '500 16px -apple-system, sans-serif';
+      ctx.fillText("Eslogans ecológicos sin auditoría", cx - cw/2 - 18, cy + 25);
+      ctx.fillText("Emisiones Alcance 1, 2 y 3 ocultas", cx - cw/2 - 18, cy + 60);
+      ctx.fillText("Sin metas científicas de reducción", cx - cw/2 - 18, cy + 95);
+
+      drawShadowCard(cx + 18, cy - 75, cw, 230, 24, '#F0FDF4');
+      ctx.fillStyle = '#16A34A';
+      ctx.font = '800 22px -apple-system, sans-serif';
+      ctx.fillText("✅ ESR Auditada (Reportes GRI)", cx + cw/2 + 18, cy - 25);
+      ctx.fillStyle = '#1F2937';
+      ctx.font = '600 16px -apple-system, sans-serif';
+      ctx.fillText("Metas validadas por Science Based Targets", cx + cw/2 + 18, cy + 25);
+      ctx.fillText("Trazabilidad total de cadena de suministro", cx + cw/2 + 18, cy + 60);
+      ctx.fillText("Auditoría externa anual pública", cx + cw/2 + 18, cy + 95);
+    }
+  }
+  else if (bIdx === 2) {
+    if (sIdx === 0) {
+      drawBadge(cx, cy - 195, "TEMA 4.8.1 · ANÁLISIS DEL CICLO DE VIDA Y HUELLA ECOLÓGICA", '#DCFCE7', '#15803D');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 40px -apple-system, sans-serif';
+      ctx.fillText("De la Economía Lineal a la Economía Circular", cx, cy - 140);
+
+      const steps = ["🌱 Materia Prima", "⚡ Producción Limpia", "📦 Distribución", "♻️ Reciclaje / Reuso", "🌿 Regeneración"];
+      const R = 135;
+      steps.forEach((st, i) => {
+        const ang = (i / steps.length) * Math.PI * 2 - Math.PI / 2 + globalT * 0.25;
+        const x = cx + Math.cos(ang) * R * 1.45;
+        const y = cy + 25 + Math.sin(ang) * R * 0.85;
+        drawShadowCard(x - 95, y - 26, 190, 52, 999, '#FFFFFF');
+        ctx.fillStyle = '#15803D';
+        ctx.font = '700 15px -apple-system, sans-serif';
+        ctx.fillText(st, x, y + 4);
+      });
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 20px -apple-system, sans-serif';
+      ctx.fillText("Cero Residuos", cx, cy + 28);
+    } else if (sIdx === 1) {
+      drawBadge(cx, cy - 195, "IMPACTO EN EL ESCENARIO ECONÓMICO", '#FEF3C7', '#B45309');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 40px -apple-system, sans-serif';
+      ctx.fillText("Rentabilidad y Competitividad de una ESR", cx, cy - 140);
+
+      const stats = [
+        { val: "-32%", title: "Costos Operativos", sub: "Por eficiencia energética y circularidad", col: "#16A34A" },
+        { val: "+45%", title: "Inversión y Bonos Verdes", sub: "Acceso preferencial a capital ESG", col: "#0284C7" },
+        { val: "3.4x", title: "Retención de Talento", sub: "Mayor productividad y estabilidad", col: "#D97706" }
+      ];
+      stats.forEach((st, i) => {
+        const x = cx + (i - 1) * 285;
+        drawShadowCard(x - 130, cy - 75, 260, 230, 26);
+        ctx.fillStyle = st.col;
+        ctx.font = '800 54px -apple-system, sans-serif';
+        ctx.fillText(st.val, x, cy + 5);
+        ctx.fillStyle = '#1D1D1F';
+        ctx.font = '700 19px -apple-system, sans-serif';
+        ctx.fillText(st.title, x, cy + 55);
+        ctx.fillStyle = '#6E6E73';
+        ctx.font = '500 14px -apple-system, sans-serif';
+        ctx.fillText(st.sub, x, cy + 90);
+      });
+    } else {
+      drawBadge(cx, cy - 195, "TEMAS 4.7 Y 4.8.3 · SERVICIOS AMBIENTALES Y DESARROLLO REGIONAL", '#DCFCE7', '#15803D');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 38px -apple-system, sans-serif';
+      ctx.fillText("Valoración de Servicios Ambientales y Economía Local", cx, cy - 140);
+
+      const bw = 840;
+      drawShadowCard(cx - bw / 2, cy - 80, bw, 240, 28);
+      const items = [
+        { icon: "💧", t: "Captura Hídrica y Bosques", d: "Pago por servicios ambientales en cuencas" },
+        { icon: "🌾", t: "Proveeduría Regional", d: "Cadenas cortas que fortalecen el PIB local" },
+        { icon: "☀️", t: "Infraestructura Limpia", d: "Empleo técnico en energía solar y reciclaje" }
+      ];
+      items.forEach((it, i) => {
+        const x = cx + (i - 1) * 270;
+        ctx.font = '42px sans-serif';
+        ctx.fillText(it.icon, x, cy - 15);
+        ctx.fillStyle = '#1D1D1F';
+        ctx.font = '700 18px -apple-system, sans-serif';
+        ctx.fillText(it.t, x, cy + 35);
+        ctx.fillStyle = '#6E6E73';
+        ctx.font = '500 13.5px -apple-system, sans-serif';
+        ctx.fillText(it.d, x, cy + 68);
+      });
+    }
+  }
+  else if (bIdx === 3) {
+    if (sIdx === 0) {
+      drawBadge(cx, cy - 195, "CASO DE ESTUDIO APLICADO EN MÉXICO · GRUPO BIMBO", '#FEF3C7', '#B45309');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 40px -apple-system, sans-serif';
+      ctx.fillText("100% Energía Eléctrica Renovable Global", cx, cy - 140);
+
+      const bw = 820;
+      drawShadowCard(cx - bw / 2, cy - 85, bw, 250, 28, '#FFFFFF');
+      const tx = cx - 230, ty = cy + 65;
+      ctx.strokeStyle = '#16A34A';
+      ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(tx, ty - 95); ctx.lineTo(tx, ty + 65); ctx.stroke();
+      for (let b = 0; b < 3; b++) {
+        const a = globalT * 2.5 + (b * Math.PI * 2) / 3;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty - 95);
+        ctx.lineTo(tx + Math.cos(a) * 68, ty - 95 + Math.sin(a) * 68);
+        ctx.stroke();
+      }
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#16A34A';
+      ctx.font = '800 56px -apple-system, sans-serif';
+      ctx.fillText("100%", cx - 75, cy - 10);
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '700 22px -apple-system, sans-serif';
+      ctx.fillText("Operación con Electricidad Limpia", cx - 75, cy + 30);
+      ctx.fillStyle = '#6E6E73';
+      ctx.font = '500 16px -apple-system, sans-serif';
+      ctx.fillText("• Parque Eólico Piedra Larga (Oaxaca) y sistemas solares", cx - 75, cy + 66);
+      ctx.fillText("• Meta verificada hacia Cero Emisiones Netas 2050", cx - 75, cy + 94);
+      ctx.textAlign = 'center';
+    } else if (sIdx === 1) {
+      drawBadge(cx, cy - 195, "INNOVACIÓN E INGENIERÍA NACIONAL (MOLDEX)", '#DCFCE7', '#15803D');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 40px -apple-system, sans-serif';
+      ctx.fillText("+4,200 Vehículos Eléctricos de Reparto", cx, cy - 140);
+
+      const bw = 810;
+      drawShadowCard(cx - bw / 2, cy - 80, bw, 240, 28);
+      const vx = cx - 220 + Math.sin(globalT * 2) * 14, vy = cy + 25;
+      roundRect(vx - 82, vy - 44, 165, 74, 16, '#16A34A');
+      roundRect(vx + 34, vy - 32, 38, 30, 8, '#DCFCE7');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.beginPath(); ctx.arc(vx - 44, vy + 30, 16, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(vx + 44, vy + 30, 16, 0, Math.PI * 2); ctx.fill();
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 25px -apple-system, sans-serif';
+      ctx.fillText("La flotilla eléctrica más grande de América Latina", cx - 65, cy - 15);
+      ctx.fillStyle = '#4B5563';
+      ctx.font = '500 16.5px -apple-system, sans-serif';
+      ctx.fillText("• Desarrollada en México por su filial tecnológica Moldex", cx - 65, cy + 25);
+      ctx.fillText("• Reduce miles de toneladas de CO₂ en reparto urbano", cx - 65, cy + 58);
+      ctx.textAlign = 'center';
+    } else {
+      drawBadge(cx, cy - 195, "CAMPO VIVO Y ECONOMÍA CIRCULAR", '#FEF3C7', '#B45309');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 40px -apple-system, sans-serif';
+      ctx.fillText("Agricultura Regenerativa y Empaques Sustentables", cx, cy - 140);
+
+      const cw = 395;
+      drawShadowCard(cx - cw - 18, cy - 80, cw, 230, 26, '#FFFBEB');
+      ctx.fillStyle = '#D97706';
+      ctx.font = '800 48px -apple-system, sans-serif';
+      ctx.fillText("+500,000 ha", cx - cw/2 - 18, cy - 5);
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '700 20px -apple-system, sans-serif';
+      ctx.fillText("Agricultura Regenerativa", cx - cw/2 - 18, cy + 40);
+      ctx.fillStyle = '#6E6E73';
+      ctx.font = '500 15px -apple-system, sans-serif';
+      ctx.fillText("Restauración de suelos de trigo y maíz", cx - cw/2 - 18, cy + 75);
+
+      drawShadowCard(cx + 18, cy - 80, cw, 230, 26, '#F0FDF4');
+      ctx.fillStyle = '#16A34A';
+      ctx.font = '800 48px -apple-system, sans-serif';
+      ctx.fillText("94% — 100%", cx + cw/2 + 18, cy - 5);
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '700 20px -apple-system, sans-serif';
+      ctx.fillText("Empaques Reciclables / Bio", cx + cw/2 + 18, cy + 40);
+      ctx.fillStyle = '#6E6E73';
+      ctx.font = '500 15px -apple-system, sans-serif';
+      ctx.fillText("Reducción de huella plástica e hídrica", cx + cw/2 + 18, cy + 75);
+    }
+  }
+  else if (bIdx === 4) {
+    if (sIdx === 0) {
+      drawBadge(cx, cy - 180, "CONCLUSIÓN · UNIDAD 4 ESCENARIO ECONÓMICO", '#DCFCE7', '#15803D');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 42px -apple-system, sans-serif';
+      ctx.fillText("La Sustentabilidad es el Nuevo Estándar Económico", cx, cy - 115);
+
+      const bw = 840;
+      drawShadowCard(cx - bw / 2, cy - 60, bw, 210, 28);
+      ctx.fillStyle = '#1F2937';
+      ctx.font = '600 21px -apple-system, sans-serif';
+      ctx.fillText("“Una Empresa Socialmente Responsable demuestra que la rentabilidad", cx, cy + 8);
+      ctx.fillText("más sólida es aquella que regenera los ecosistemas y las comunidades", cx, cy + 44);
+      ctx.fillStyle = '#16A34A';
+      ctx.fillText("que hacen posible toda actividad económica.”", cx, cy + 80);
+    } else {
+      drawBadge(cx, cy - 195, "CRÉDITOS DE PRODUCCIÓN · EQUIPO 4", '#1D1D1F', '#FFFFFF');
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = '800 42px -apple-system, sans-serif';
+      ctx.fillText("Desarrollo Sustentable · Escenario Económico", cx, cy - 140);
+      ctx.fillStyle = '#16A34A';
+      ctx.font = '700 21px -apple-system, sans-serif';
+      ctx.fillText("Tema 4.8.2 — Empresas Socialmente Responsables (ESR)", cx, cy - 95);
+
+      const members = [
+        { initials: "LB", name: "Luciano Bustillos", col: "#16A34A" },
+        { initials: "DG", name: "David García", col: "#0284C7" },
+        { initials: "LP", name: "Luis Payán", col: "#D97706" },
+        { initials: "AL", name: "Armando Loya", col: "#15803D" }
+      ];
+      members.forEach((m, i) => {
+        const x = cx + (i - 1.5) * 215;
+        const y = cy + 35 + (1 - enter) * 25;
+        drawShadowCard(x - 98, y - 80, 196, 175, 24);
+        ctx.beginPath();
+        ctx.arc(x, y - 22, 31, 0, Math.PI * 2);
+        ctx.fillStyle = m.col;
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '800 19px -apple-system, sans-serif';
+        ctx.fillText(m.initials, x, y - 20);
+
+        ctx.fillStyle = '#1D1D1F';
+        ctx.font = '700 17.5px -apple-system, sans-serif';
+        ctx.fillText(m.name, x, y + 42);
+        ctx.fillStyle = '#6E6E73';
+        ctx.font = '600 13px -apple-system, sans-serif';
+        ctx.fillText("Equipo 4", x, y + 66);
+      });
+    }
+  }
+}
+
+function animate(now) {
+  const dt = Math.min(0.1, (now - lastFrame) / 1000);
+  lastFrame = now;
+  blockTime += dt;
+
+  if (isExporting) {
+    exportElapsed += dt;
+    const pct = Math.min(100, Math.round((exportElapsed / exportTargetDuration) * 100));
+    document.getElementById('recStatus').textContent = `🔴 Renderizando MP4 1080p (Limpio sin menús)... ${pct}%`;
+    if (exportElapsed >= exportTargetDuration) {
+      stopExportEarly();
+    }
+  }
+
+  const block = BLOCKS[currentBlock];
+  const totalBlockDur = block.scenes.reduce((a, b) => a + b.dur, 0);
+
+  if (blockTime >= totalBlockDur) {
+    currentBlock = (currentBlock + 1) % BLOCKS.length;
+    updateBlockButtons();
+    blockTime = 0;
+  }
+
+  let acc = 0, sIdx = 0, localT = 0, sDur = block.scenes[0].dur;
+  for (let i = 0; i < block.scenes.length; i++) {
+    if (blockTime < acc + block.scenes[i].dur) {
+      sIdx = i;
+      localT = blockTime - acc;
+      sDur = block.scenes[i].dur;
+      break;
+    }
+    acc += block.scenes[i].dur;
+  }
+
+  const globalSceneKey = currentBlock * 10 + sIdx;
+  if (globalSceneKey !== lastSceneIndex) {
+    lastSceneIndex = globalSceneKey;
+    document.getElementById('tpTag').textContent = block.scenes[sIdx].tag;
+    document.getElementById('tpText').textContent = block.scenes[sIdx].sub;
+  }
+
+  drawBackground(now / 1000);
+  renderScene(currentBlock, sIdx, localT, sDur, now / 1000);
+
+  const totalProgress = ((currentBlock * 30) + blockTime) / 150;
+  ctx.fillStyle = 'rgba(22, 163, 74, 0.85)';
+  ctx.fillRect(0, H - 5, W * totalProgress, 5);
+
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+function setBlock(idx) {
+  currentBlock = idx;
+  blockTime = 0;
+  updateBlockButtons();
+}
+function updateBlockButtons() {
+  for (let i = 0; i < 5; i++) {
+    document.getElementById('b' + i).classList.toggle('active', i === currentBlock);
+  }
+}
+function toggleSub() {
+  subOn = !subOn;
+  document.getElementById('teleprompter').classList.toggle('hidden', !subOn);
+  document.getElementById('btnSub').classList.toggle('active', subOn);
+}
+function hideUI() {
+  document.getElementById('topbar').classList.toggle('hidden');
+}
+canvas.addEventListener('dblclick', hideUI);
+
+function openScript() {
+  const container = document.getElementById('scriptContainer');
+  container.innerHTML = BLOCKS.map(b => `
+    <div class="script-block">
+      <h4>${b.name}</h4>
+      ${b.scenes.map(s => `<p><strong>[${s.tag}]</strong> ${s.sub}</p>`).join('')}
+    </div>
+  `).join('');
+  document.getElementById('scriptModal').classList.add('open');
+}
+function closeScript() {
+  document.getElementById('scriptModal').classList.remove('open');
+}
+function copyScript() {
+  const plainText = BLOCKS.map(b => b.scenes.map(s => s.sub).join(' ')).join('\n\n');
+  navigator.clipboard.writeText(plainText);
+  alert('¡Guion limpio copiado!');
+}
+</script>
+</body>
+</html>
